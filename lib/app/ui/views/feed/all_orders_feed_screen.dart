@@ -270,14 +270,18 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               subdomains: const ['a', 'b', 'c', 'd'],
             ),
 
-            // Marcador SVG del Repartidor en Vivo
+            // Marcador SVG del Repartidor en Vivo (Píldora de Navegación)
             MarkerLayer(
               markers: [
                 Marker(
                   point: driverLocation,
-                  width: 52,
-                  height: 52,
-                  child: AppSvgIcons.driverLiveMarker(size: 52),
+                  width: 44,
+                  height: 70,
+                  child: AppSvgIcons.vehicleNavMarker(
+                    vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
+                    width: 44,
+                    height: 70,
+                  ),
                 ),
               ],
             ),

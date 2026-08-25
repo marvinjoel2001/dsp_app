@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -281,27 +282,31 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> {
                   // Marcador SVG de Comercio (Punto de Recogida)
                   Marker(
                     point: pickupPoint,
-                    width: 52,
-                    height: 52,
-                    child: AppSvgIcons.storePickupMarker(size: 52),
+                    width: 48,
+                    height: 58,
+                    child: AppSvgIcons.storePickupMarker(size: 48),
                   ),
 
                   // Marcador SVG de Destino (Cliente Final)
                   Marker(
                     point: dropoffPoint,
-                    width: 52,
-                    height: 52,
-                    child: AppSvgIcons.customerDropoffMarker(size: 52),
+                    width: 48,
+                    height: 58,
+                    child: AppSvgIcons.customerDropoffMarker(size: 48),
                   ),
 
-                  // Marcador SVG del Repartidor en Vivo con Rumbo Heading
+                  // Marcador SVG del Repartidor en Vivo (Píldora con Moto/Vehículo y Rumbo)
                   Marker(
                     point: driverPos,
-                    width: 58,
-                    height: 58,
+                    width: 44,
+                    height: 70,
                     child: Transform.rotate(
                       angle: rideCtrl.driverHeading * (pi / 180.0),
-                      child: AppSvgIcons.driverLiveMarker(size: 58),
+                      child: AppSvgIcons.vehicleNavMarker(
+                        vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
+                        width: 44,
+                        height: 70,
+                      ),
                     ),
                   ),
                 ],
