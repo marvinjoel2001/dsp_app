@@ -95,6 +95,7 @@ class EarningsWalletScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w900,
+                                color: AppColors.primaryDeep,
                               ),
                             ),
                           ),
