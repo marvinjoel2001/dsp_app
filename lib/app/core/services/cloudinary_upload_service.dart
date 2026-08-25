@@ -1,24 +1,22 @@
-import 'dart:typed_data';
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 
 class CloudinaryUploadResult {
-  final String secureUrl;
-  final String publicId;
-
   const CloudinaryUploadResult({
     required this.secureUrl,
     required this.publicId,
   });
+
+  final String secureUrl;
+  final String publicId;
 }
 
 class CloudinaryUploadService {
-  static final Dio _dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(seconds: 25),
-      receiveTimeout: const Duration(seconds: 25),
-    ),
-  );
+  CloudinaryUploadService._();
+
+  static final http.Client _client = http.Client();
 
   /// Sube bytes de imagen directamente a Cloudinary usando el preset unsigned "chamba"
   static Future<CloudinaryUploadResult> uploadImageBytes({
@@ -26,37 +24,40 @@ class CloudinaryUploadService {
     required String fileName,
     required String folder,
   }) async {
-    final cloudName = ApiConstants.cloudinaryCloudName;
-    final uploadPreset = ApiConstants.cloudinaryUploadPreset;
+    final cloudName = ApiConstants.cloudinaryCloudName.trim();
+    final uploadPreset = ApiConstants.cloudinaryUploadPreset.trim();
 
-    final url = 'https://api.cloudinary.com/v1_1/$cloudName/image/upload';
+    debugPrint('[Cloudinary] Subiendo imagen: $fileName a folder: $folder');
+
+    final endpoint = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+    );
+    final request = http.MultipartRequest('POST', endpoint)
+      ..fields['upload_preset'] = uploadPreset
+      ..fields['folder'] = folder
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: fileName),
+      );
 
     try {
-      final formData = FormData.fromMap({
-        'upload_preset': uploadPreset,
-        'folder': folder,
-        'file': MultipartFile.fromBytes(
-          bytes,
-          filename: fileName,
-        ),
-      });
+      final streamed = await _client.send(request);
+      final response = await http.Response.fromStream(streamed);
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final secureUrl = payload['secure_url'] as String?;
+      final publicId = payload['public_id'] as String?;
 
-      final response = await _dio.post(url, data: formData);
-
-      if (response.statusCode == 200 && response.data != null) {
-        final secureUrl = response.data['secure_url'] as String;
-        final publicId = response.data['public_id'] as String;
-        return CloudinaryUploadResult(secureUrl: secureUrl, publicId: publicId);
-      } else {
-        throw Exception('Error al subir imagen a Cloudinary (${response.statusCode})');
+      if (response.statusCode >= 400 || secureUrl == null || publicId == null) {
+        final detail = (payload['error'] as Map<String, dynamic>?)?['message'] as String? ??
+            'No se pudo subir la imagen a Cloudinary';
+        debugPrint('[Cloudinary] Error: $detail');
+        throw Exception(detail);
       }
+
+      debugPrint('[Cloudinary] Subida exitosa: $secureUrl');
+      return CloudinaryUploadResult(secureUrl: secureUrl, publicId: publicId);
     } catch (e) {
-      // Si falla la red, genera URL de respaldo verídica
-      final fallbackUrl = 'https://res.cloudinary.com/$cloudName/image/upload/$folder/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      return CloudinaryUploadResult(
-        secureUrl: fallbackUrl,
-        publicId: 'local_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      debugPrint('[Cloudinary] Excepción en subida: $e');
+      rethrow;
     }
   }
 }

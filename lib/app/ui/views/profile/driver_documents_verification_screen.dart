@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/cloudinary_upload_service.dart';
 import '../../controllers/auth_controller.dart';
@@ -15,7 +15,7 @@ class DriverDocumentsVerificationScreen extends StatefulWidget {
 
 class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerificationScreen> {
   final ImagePicker _picker = ImagePicker();
-  bool _isUploading = false;
+  String? _uploadingDocType;
   bool _isSaving = false;
 
   String? _idCardUrl;
@@ -35,31 +35,122 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
     }
   }
 
-  Future<void> _uploadDoc(String docType) async {
-    setState(() => _isUploading = true);
+  void _showImageSourcePicker(String docType, String docTitle) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Subir $docTitle',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Selecciona cómo deseas adjuntar la fotografía',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 20),
+
+              // Opción 1: Cámara
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt, color: AppColors.primaryDark, size: 22),
+                ),
+                title: const Text(
+                  'Tomar Fotografía con la Cámara',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                subtitle: const Text('Abre la cámara del dispositivo', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadImage(docType, ImageSource.camera);
+                },
+              ),
+              const Divider(color: Color(0xFFF1F5F9)),
+
+              // Opción 2: Galería
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library, color: AppColors.secondaryDark, size: 22),
+                ),
+                title: const Text(
+                  'Elegir de la Galería de Fotos',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                subtitle: const Text('Selecciona una imagen guardada', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadImage(docType, ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage(String docType, ImageSource source) async {
+    // 1. Validar Permisos
+    if (source == ImageSource.camera) {
+      final cameraStatus = await Permission.camera.request();
+      if (cameraStatus.isPermanentlyDenied) {
+        if (mounted) {
+          _showPermissionDialog('Se requiere acceso a la cámara para tomar la fotografía del documento.');
+        }
+        return;
+      }
+    }
 
     try {
-      XFile? image;
-      try {
-        image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-      } catch (_) {
-        try {
-          image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
-        } catch (_) {}
-      }
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
 
-      List<int> bytes;
-      String filename = '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (pickedFile == null) return;
 
-      if (image != null) {
-        bytes = await image.readAsBytes();
-      } else {
-        bytes = utf8.encode('doc_${docType}_${DateTime.now().millisecondsSinceEpoch}');
-      }
+      setState(() => _uploadingDocType = docType);
+
+      final bytes = await pickedFile.readAsBytes();
+      final fileName = '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       final result = await CloudinaryUploadService.uploadImageBytes(
         bytes: bytes,
-        fileName: filename,
+        fileName: fileName,
         folder: 'chiringuito/drivers/documents',
       );
 
@@ -72,8 +163,8 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Documento subido con éxito a Cloudinary ($docType).'),
+          const SnackBar(
+            content: Text('✅ Fotografía subida con éxito a Cloudinary.'),
             backgroundColor: AppColors.primaryDark,
           ),
         );
@@ -82,14 +173,92 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al subir documento: $e'),
+            content: Text('Error al procesar la imagen: $e'),
             backgroundColor: AppColors.error,
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) setState(() => _uploadingDocType = null);
     }
+  }
+
+  void _showPermissionDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Permiso Requerido'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Abrir Ajustes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImagePreview(String title, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                leading: IconButton(
+                  icon: const Icon(Icons.close, color: Color(0xFF0F172A)),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+              InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return const SizedBox(
+                      height: 250,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: Text('No se pudo cargar la vista previa', style: TextStyle(color: AppColors.error)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -137,48 +306,48 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
               ),
               const SizedBox(height: 6),
               const Text(
-                'Para mantener activa tu cuenta de repartidor en Chiringuito y recibir ofertas de entrega, sube fotografías nítidas de tus documentos vigentes.',
+                'Toma fotos nítidas o adjunta archivos legibles de tus documentos vigentes para validar tu cuenta.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
               ),
               const SizedBox(height: 20),
 
               // 1. Cédula de Identidad
               _buildDocCard(
+                docType: 'id_card',
                 title: '1. Cédula de Identidad / DNI',
                 subtitle: 'Anverso y reverso legible con datos visibles',
                 docUrl: _idCardUrl,
                 icon: Icons.badge_outlined,
-                onUpload: () => _uploadDoc('id_card'),
               ),
               const SizedBox(height: 14),
 
               // 2. Licencia de Conducir
               _buildDocCard(
+                docType: 'license',
                 title: '2. Licencia de Conducir Vigente',
                 subtitle: 'Categoría para motocicleta o vehículo correspondiente',
                 docUrl: _licenseUrl,
                 icon: Icons.credit_card_outlined,
-                onUpload: () => _uploadDoc('license'),
               ),
               const SizedBox(height: 14),
 
               // 3. Seguro Obligatorio (SOAT)
               _buildDocCard(
+                docType: 'soat',
                 title: '3. Certificado de Seguro (SOAT)',
                 subtitle: 'Comprobante de seguro contra accidentes vigente',
                 docUrl: _soatUrl,
                 icon: Icons.security_outlined,
-                onUpload: () => _uploadDoc('soat'),
               ),
               const SizedBox(height: 14),
 
               // 4. Foto del Vehículo y Placa
               _buildDocCard(
+                docType: 'vehicle',
                 title: '4. Fotografía del Vehículo',
                 subtitle: 'Foto nítida mostrando el estado del vehículo y placa',
                 docUrl: _vehiclePhotoUrl,
                 icon: Icons.two_wheeler_outlined,
-                onUpload: () => _uploadDoc('vehicle'),
               ),
               const SizedBox(height: 28),
 
@@ -187,7 +356,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: (_isUploading || _isSaving)
+                  onPressed: (_uploadingDocType != null || _isSaving)
                       ? null
                       : () async {
                           setState(() => _isSaving = true);
@@ -203,7 +372,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
                             if (success) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('🎉 Documentos enviados a revisión exitosamente.'),
+                                  content: Text('🎉 Documentos guardados y enviados a revisión exitosamente.'),
                                   backgroundColor: AppColors.primaryDark,
                                 ),
                               );
@@ -317,13 +486,14 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
   }
 
   Widget _buildDocCard({
+    required String docType,
     required String title,
     required String subtitle,
     required String? docUrl,
     required IconData icon,
-    required VoidCallback onUpload,
   }) {
     final hasUploaded = docUrl != null && docUrl.isNotEmpty;
+    final isCurrentlyUploading = _uploadingDocType == docType;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -376,21 +546,82 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
                 const Icon(Icons.check_circle, color: AppColors.primary, size: 22),
             ],
           ),
+
+          // Miniatura de Vista Previa Real si ya se subió la imagen
+          if (hasUploaded) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => _showImagePreview(title, docUrl),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 110,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      docUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFF1F5F9),
+                        child: const Center(
+                          child: Icon(Icons.image, size: 36, color: Color(0xFF94A3B8)),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text('Ver Foto', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 14),
 
           // Botón Subir / Cambiar Archivo
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 44,
             child: OutlinedButton.icon(
-              onPressed: _isUploading ? null : onUpload,
-              icon: Icon(
-                hasUploaded ? Icons.refresh : Icons.camera_alt_outlined,
-                size: 16,
-                color: hasUploaded ? AppColors.primaryDark : const Color(0xFF0F172A),
-              ),
+              onPressed: isCurrentlyUploading ? null : () => _showImageSourcePicker(docType, title),
+              icon: isCurrentlyUploading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    )
+                  : Icon(
+                      hasUploaded ? Icons.refresh : Icons.camera_alt_outlined,
+                      size: 16,
+                      color: hasUploaded ? AppColors.primaryDark : const Color(0xFF0F172A),
+                    ),
               label: Text(
-                hasUploaded ? 'Cambiar Foto / Archivo' : 'Tomar Foto o Subir Documento',
+                isCurrentlyUploading
+                    ? 'Subiendo a Cloudinary...'
+                    : (hasUploaded ? 'Cambiar Fotografía' : 'Tomar Foto o Subir Documento'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,

@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/cloudinary_upload_service.dart';
 
@@ -29,36 +29,115 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
     super.dispose();
   }
 
-  Future<void> _captureAndUploadPhoto() async {
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Comprobante de Entrega',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Toma la foto del paquete o entrega en mano',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 20),
+
+              // Cámara
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt, color: AppColors.primaryDark, size: 22),
+                ),
+                title: const Text(
+                  'Tomar Fotografía con la Cámara',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadPhoto(ImageSource.camera);
+                },
+              ),
+              const Divider(color: Color(0xFFF1F5F9)),
+
+              // Galería
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library, color: AppColors.secondaryDark, size: 22),
+                ),
+                title: const Text(
+                  'Elegir de la Galería',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadPhoto(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      await Permission.camera.request();
+    }
+
     setState(() {
       _isUploadingPhoto = true;
       _validationError = null;
     });
 
     try {
-      XFile? image;
-      try {
-        image = await _picker.pickImage(
-          source: ImageSource.camera,
-          imageQuality: 80,
-          maxWidth: 1280,
-        );
-      } catch (_) {
-        // En emulador o entorno sin cámara nativa, permitir galería o fallback
-        try {
-          image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-        } catch (_) {}
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1400,
+      );
+
+      if (image == null) {
+        setState(() => _isUploadingPhoto = false);
+        return;
       }
 
-      List<int> bytes;
-      String filename = 'pod_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      if (image != null) {
-        bytes = await image.readAsBytes();
-      } else {
-        // Mock fallback para pruebas
-        bytes = utf8.encode('pod_delivery_image_${DateTime.now().millisecondsSinceEpoch}');
-      }
+      final bytes = await image.readAsBytes();
+      final filename = 'pod_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       final result = await CloudinaryUploadService.uploadImageBytes(
         bytes: bytes,
@@ -80,10 +159,14 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
         );
       }
     } catch (e) {
-      setState(() {
-        _photoTaken = true;
-        _photoUrl = 'https://res.cloudinary.com/dpdpgl5kg/image/upload/chiringuito/pod_backup.jpg';
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al subir imagen: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isUploadingPhoto = false);
     }
@@ -193,7 +276,7 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
 
             // Opción 1: Captura de Foto del Paquete y Subida a Cloudinary
             InkWell(
-              onTap: _isUploadingPhoto ? null : _captureAndUploadPhoto,
+              onTap: _isUploadingPhoto ? null : _showImageSourcePicker,
               borderRadius: BorderRadius.circular(16),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -206,52 +289,77 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
                     width: _photoTaken ? 1.8 : 1.0,
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _photoTaken ? AppColors.primary : Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: _isUploadingPhoto
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                            )
-                          : Icon(
-                              _photoTaken ? Icons.check : Icons.camera_alt_outlined,
-                              color: _photoTaken ? Colors.white : const Color(0xFF64748B),
-                              size: 20,
-                            ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _photoTaken ? 'Foto Adjuntada en Cloudinary' : 'Tomar Foto del Paquete Entregado',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: _photoTaken ? AppColors.primaryDark : const Color(0xFF0F172A),
-                            ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _photoTaken ? AppColors.primary : Colors.white,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _photoTaken ? 'Geo-timestamp registrado • Respaldo en la nube' : 'Toma la foto del pedido en la puerta o mano del cliente',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _photoTaken ? AppColors.primaryDeep : const Color(0xFF64748B),
-                            ),
+                          child: _isUploadingPhoto
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                )
+                              : Icon(
+                                  _photoTaken ? Icons.check : Icons.camera_alt_outlined,
+                                  color: _photoTaken ? Colors.white : const Color(0xFF64748B),
+                                  size: 20,
+                                ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _photoTaken ? 'Foto Adjuntada en Cloudinary' : 'Tomar Foto del Paquete Entregado',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: _photoTaken ? AppColors.primaryDark : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _photoTaken ? 'Geo-timestamp registrado • Respaldo en la nube' : 'Toca para abrir la cámara o galería',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _photoTaken ? AppColors.primaryDeep : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        if (_photoTaken)
+                          const Icon(Icons.check_circle, color: AppColors.primary, size: 22),
+                      ],
                     ),
-                    if (_photoTaken)
-                      const Icon(Icons.check_circle, color: AppColors.primary, size: 22),
+
+                    // Previsualización de la Foto
+                    if (_photoTaken && _photoUrl != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 100,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.network(
+                          _photoUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.image, color: AppColors.primary),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -341,7 +449,6 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
               height: 54,
               child: ElevatedButton(
                 onPressed: () {
-                  // Validación Estricta
                   if (!_photoTaken && !_signatureCaptured) {
                     setState(() {
                       _validationError = '⚠️ Es obligatorio tomar la foto del paquete o registrar la firma antes de marcar entregado.';
