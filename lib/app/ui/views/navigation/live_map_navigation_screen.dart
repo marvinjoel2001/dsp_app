@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_svg_icons.dart';
+import '../../../core/services/app_audio_service.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../controllers/active_ride_controller.dart';
 import '../../controllers/auth_controller.dart';
@@ -20,184 +21,68 @@ class LiveMapNavigationScreen extends StatefulWidget {
   State<LiveMapNavigationScreen> createState() => _LiveMapNavigationScreenState();
 }
 
-class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> {
-  final MapController _mapController = MapController();
+class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with TickerProviderStateMixin {
+  late final MapController _mapController;
+  final AppAudioService _audioService = AppAudioService();
   bool _autoFollowDriver = true;
+  bool _isVoiceEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final rideCtrl = context.read<ActiveRideController>();
-      rideCtrl.calculateCurrentRoute();
-    });
+    _mapController = MapController();
+    _isVoiceEnabled = _audioService.isVoiceGuidanceEnabled;
   }
 
-  void _recenterOnDriver(LatLng driverPos, double zoom) {
+  void _recenterOnDriver(LatLng driverLocation, double zoom) {
     setState(() => _autoFollowDriver = true);
-    _mapController.move(driverPos, zoom);
+    _animatedMapMove(driverLocation, zoom);
+  }
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    final latTween = Tween<double>(begin: _mapController.camera.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(begin: _mapController.camera.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.camera.zoom, end: destZoom);
+
+    final controller = AnimationController(duration: const Duration(milliseconds: 600), vsync: this);
+    final Animation<double> animation = CurvedAnimation(parent: controller, curve: Curves.easeInOutCubic);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
   }
 
   void _showHelpMenu(BuildContext context) {
     final rideCtrl = context.read<ActiveRideController>();
-    final order = rideCtrl.activeOrder;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      isScrollControlled: true,
+      builder: (_) => CancelOrderDialog(
+        orderId: rideCtrl.activeOrder?.id ?? '',
+        onConfirmCancel: (reason) async {
+          await rideCtrl.cancelActiveOrder(reason);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('⚠️ Orden cancelada: $reason'),
+                backgroundColor: AppColors.error,
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Opciones de Asistencia y Ruta',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // 1. Recalcular Ruta Mapbox
-            _buildHelpOption(
-              icon: Icons.alt_route,
-              color: AppColors.primary,
-              title: 'Recalcular Ruta por Calles',
-              subtitle: 'Consultar tráfico y trayecto óptimo en Mapbox',
-              onTap: () {
-                Navigator.pop(context);
-                rideCtrl.calculateCurrentRoute();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🗺️ Ruta recalculada con tráfico en tiempo real.'),
-                    backgroundColor: AppColors.primaryDark,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
-
-            // 2. Central de Despacho
-            _buildHelpOption(
-              icon: Icons.support_agent,
-              color: AppColors.primary,
-              title: 'Central de Despacho Chiringuito',
-              subtitle: 'Línea de soporte operativo (+591 700-00000)',
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('📞 Conectando con la Central de Despacho...'),
-                    backgroundColor: AppColors.primaryDark,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
-
-            // 3. Cancelar Orden Segura
-            if (order != null)
-              _buildHelpOption(
-                icon: Icons.cancel_outlined,
-                color: AppColors.error,
-                title: 'Cancelar Orden',
-                subtitle: 'Comercio cerrado, avería de vehículo o emergencia',
-                onTap: () {
-                  Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    builder: (_) => CancelOrderDialog(
-                      orderId: order.id,
-                      onConfirmCancel: (reason) async {
-                        await rideCtrl.cancelActiveOrder(reason);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🚫 Orden cancelada y reasignada a la central.'),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHelpOption({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
-          ],
-        ),
+            );
+            Navigator.pop(context);
+          }
+        },
       ),
     );
   }
@@ -208,36 +93,35 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> {
     final authCtrl = context.watch<AuthController>();
     final order = rideCtrl.activeOrder;
 
+    final driverPos = rideCtrl.driverLocation;
+    final isDelivering = rideCtrl.currentStage == RideStage.inTransit || rideCtrl.currentStage == RideStage.delivered;
+
     final pickupPoint = LatLng(order?.pickupLat ?? -17.7833, order?.pickupLng ?? -63.1821);
     final dropoffPoint = LatLng(order?.dropoffLat ?? -17.7950, order?.dropoffLng ?? -63.1700);
-
-    final isDelivering = rideCtrl.currentStage == RideStage.inTransit;
-    final driverPos = rideCtrl.driverLocation;
-
-    // Auto-centrar si está activado el seguimiento
-    if (_autoFollowDriver) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          _mapController.move(driverPos, rideCtrl.is3DView ? 16.8 : 15.5);
-        } catch (_) {}
-      });
-    }
 
     final currentStep = (rideCtrl.routeSteps.isNotEmpty && rideCtrl.currentStepIndex < rideCtrl.routeSteps.length)
         ? rideCtrl.routeSteps[rideCtrl.currentStepIndex]
         : null;
 
+    // Auto-seguimiento suave del conductor cuando avanza
+    if (_autoFollowDriver) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _mapController.move(driverPos, rideCtrl.is3DView ? 16.8 : 15.5);
+        }
+      });
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // 1. Capa de Mapa Vectorial Mapbox Light con Rutas Reales por Calles
+          // 1. Motor de Mapas con Mapbox Vector Tiles Claros de Alta Precisión
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: driverPos,
               initialZoom: rideCtrl.is3DView ? 16.8 : 15.5,
-              interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
               onPositionChanged: (pos, hasGesture) {
                 if (hasGesture && _autoFollowDriver) {
                   setState(() => _autoFollowDriver = false);
@@ -245,28 +129,27 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> {
               },
             ),
             children: [
+              // Capa de Mosaicos Vectoriales Mapbox Light (Blanco/Gris AAA de Alto Rendimiento)
               TileLayer(
-                urlTemplate: ApiConstants.mapboxLightStyleUrl,
+                urlTemplate: ApiConstants.mapboxLightStyleUrl.contains('access_token=') &&
+                        !ApiConstants.mapboxLightStyleUrl.contains('access_token=pk.your_')
+                    ? ApiConstants.mapboxLightStyleUrl
+                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                 userAgentPackageName: 'com.chiringuito.driver',
-                maxZoom: 19,
                 subdomains: const ['a', 'b', 'c', 'd'],
               ),
 
-              // Capa de Ruta con Borde Casing (Máxima Visibilidad en Carreteras)
+              // Capa de Polilíneas de Ruta Dinámica (Se va consumiendo por detrás)
               if (rideCtrl.routePolyline.isNotEmpty) ...[
-                // Línea de fondo (Borde oscuro para alto contraste)
                 PolylineLayer(
                   polylines: [
+                    // Capa Sombra / Borde Oscuro
                     Polyline(
                       points: rideCtrl.routePolyline,
-                      strokeWidth: 8.0,
-                      color: const Color(0xFF0F172A).withValues(alpha: 0.7),
+                      strokeWidth: 9.0,
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.25),
                     ),
-                  ],
-                ),
-                // Línea principal (Verde Esmeralda o Ámbar brillante)
-                PolylineLayer(
-                  polylines: [
+                    // Capa Central Brillante con Color de Estado
                     Polyline(
                       points: rideCtrl.routePolyline,
                       strokeWidth: 5.5,
@@ -342,6 +225,76 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> {
 
                   Row(
                     children: [
+                      // Botón Toggle Voz TTS
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isVoiceEnabled = !_isVoiceEnabled;
+                            _audioService.isVoiceGuidanceEnabled = _isVoiceEnabled;
+                          });
+                          if (_isVoiceEnabled) {
+                            _audioService.speakInstruction(rideCtrl.turnGuidance);
+                          } else {
+                            _audioService.stopSpeech();
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_isVoiceEnabled ? '🔊 Instrucciones por voz activadas' : '🔇 Voz silenciada'),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: AppColors.primaryDark,
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _isVoiceEnabled ? AppColors.primaryLight : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: _isVoiceEnabled ? AppColors.primary : const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
+                            ],
+                          ),
+                          child: Icon(
+                            _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
+                            size: 20,
+                            color: _isVoiceEnabled ? AppColors.primaryDark : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Botón Recalcular Ruta
+                      InkWell(
+                        onTap: () async {
+                          await rideCtrl.recalculateRoute();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('🔄 Recalculando ruta en tiempo real por calles...'),
+                                duration: Duration(seconds: 1),
+                                backgroundColor: AppColors.primaryDark,
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
+                            ],
+                          ),
+                          child: const Icon(Icons.sync, size: 20, color: Color(0xFF0F172A)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
                       // Botón 2D / 3D
                       InkWell(
                         onTap: () {

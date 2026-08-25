@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/app_audio_service.dart';
 import '../../domain/entities/order_entity.dart';
 
 class IncomingOrderModal extends StatefulWidget {
@@ -27,11 +28,15 @@ class _IncomingOrderModalState extends State<IncomingOrderModal> {
   @override
   void initState() {
     super.initState();
+    // Iniciar sonido de alerta de despacho
+    AppAudioService().playIncomingOrderAlert();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 1) {
         setState(() => _secondsRemaining--);
       } else {
         _timer?.cancel();
+        AppAudioService().stopAlertSound();
         widget.onDecline();
       }
     });
@@ -40,6 +45,7 @@ class _IncomingOrderModalState extends State<IncomingOrderModal> {
   @override
   void dispose() {
     _timer?.cancel();
+    AppAudioService().stopAlertSound();
     super.dispose();
   }
 

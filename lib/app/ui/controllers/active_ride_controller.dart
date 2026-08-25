@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../core/services/mapbox_routing_service.dart';
+import '../../core/services/app_audio_service.dart';
 
 enum RideStage {
   assigned, // Etapa 1: En ruta al comercio
@@ -16,13 +17,14 @@ enum RideStage {
 class ActiveRideController extends ChangeNotifier {
   final OrderRepository orderRepository;
   final MapboxRoutingService _routingService = MapboxRoutingService();
+  final AppAudioService _audioService = AppAudioService();
 
   OrderEntity? _activeOrder;
   RideStage _currentStage = RideStage.assigned;
   bool _is3DView = true;
   String _turnGuidance = "Calculando ruta óptima por calles...";
-  String _merchantPhone = "+591 700-11223";
-  String _customerPhone = "+591 755-44332";
+  final String _merchantPhone = "+591 700-11223";
+  final String _customerPhone = "+591 755-44332";
 
   // Telemetría y Navegación GPS en Tiempo Real
   LatLng _driverLocation = const LatLng(-17.7810, -63.1800);
@@ -32,7 +34,7 @@ class ActiveRideController extends ChangeNotifier {
   bool _isLoadingRoute = false;
 
   // Ruta Vectorial Mapbox
-  List<LatLng> _routePolyline = [];
+  List<LatLng> _fullRoutePolyline = [];
   double _routeDistanceKm = 1.5;
   int _routeDurationMin = 12;
   List<RouteStep> _routeSteps = [];
@@ -40,6 +42,7 @@ class ActiveRideController extends ChangeNotifier {
 
   Timer? _simulationTimer;
   int _simulationPolylineIndex = 0;
+  String _lastSpokenGuidance = "";
 
   OrderEntity? get activeOrder => _activeOrder;
   RideStage get currentStage => _currentStage;
@@ -53,11 +56,20 @@ class ActiveRideController extends ChangeNotifier {
   double get driverSpeedKmh => _driverSpeedKmh;
   bool get isNavigating => _isNavigating;
   bool get isLoadingRoute => _isLoadingRoute;
-  List<LatLng> get routePolyline => _routePolyline;
   double get routeDistanceKm => _routeDistanceKm;
   int get routeDurationMin => _routeDurationMin;
   List<RouteStep> get routeSteps => _routeSteps;
   int get currentStepIndex => _currentStepIndex;
+
+  /// Ruta visible que se va consumiendo por detrás a medida que avanza el conductor
+  List<LatLng> get routePolyline {
+    if (_fullRoutePolyline.isEmpty) return [];
+    if (_simulationPolylineIndex >= _fullRoutePolyline.length) {
+      return [_driverLocation];
+    }
+    // Solo mostramos desde la posición actual del conductor hacia el destino
+    return [_driverLocation, ..._fullRoutePolyline.sublist(_simulationPolylineIndex + 1)];
+  }
 
   ActiveRideController({required this.orderRepository}) {
     // Orden de demostración inicial
@@ -96,6 +108,9 @@ class ActiveRideController extends ChangeNotifier {
 
   void toggleNavigationMode() {
     _isNavigating = !_isNavigating;
+    if (_isNavigating) {
+      _speakCurrentInstruction();
+    }
     notifyListeners();
   }
 
@@ -103,6 +118,7 @@ class ActiveRideController extends ChangeNotifier {
     _activeOrder = order;
     _currentStage = RideStage.assigned;
     _simulationPolylineIndex = 0;
+    _audioService.playOrderAccepted();
     calculateCurrentRoute();
     notifyListeners();
   }
@@ -117,16 +133,10 @@ class ActiveRideController extends ChangeNotifier {
     final pickup = LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng);
     final dropoff = LatLng(_activeOrder!.dropoffLat, _activeOrder!.dropoffLng);
 
-    LatLng origin;
-    LatLng destination;
-
-    if (_currentStage == RideStage.assigned || _currentStage == RideStage.arrivedAtPickup) {
-      origin = _driverLocation;
-      destination = pickup;
-    } else {
-      origin = pickup;
-      destination = dropoff;
-    }
+    LatLng origin = _driverLocation;
+    LatLng destination = (_currentStage == RideStage.assigned || _currentStage == RideStage.arrivedAtPickup)
+        ? pickup
+        : dropoff;
 
     final result = await _routingService.getDirections(
       origin: origin,
@@ -134,11 +144,12 @@ class ActiveRideController extends ChangeNotifier {
     );
 
     if (result != null && result.polyline.isNotEmpty) {
-      _routePolyline = result.polyline;
+      _fullRoutePolyline = result.polyline;
       _routeDistanceKm = result.distanceKm;
       _routeDurationMin = result.durationMinutes;
       _routeSteps = result.steps;
       _currentStepIndex = 0;
+      _simulationPolylineIndex = 0;
 
       if (_routeSteps.isNotEmpty) {
         _turnGuidance = _routeSteps[0].instruction;
@@ -147,6 +158,8 @@ class ActiveRideController extends ChangeNotifier {
             ? "Dirígete hacia ${_activeOrder!.pickupAddress.split(',')[0]}"
             : "Dirígete hacia ${_activeOrder!.dropoffAddress.split(',')[0]}";
       }
+
+      _speakCurrentInstruction();
     }
 
     _isLoadingRoute = false;
@@ -154,38 +167,57 @@ class ActiveRideController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _speakCurrentInstruction() {
+    if (_turnGuidance.isNotEmpty && _turnGuidance != _lastSpokenGuidance) {
+      _lastSpokenGuidance = _turnGuidance;
+      _audioService.speakInstruction(_turnGuidance);
+    }
+  }
+
   void _startOrRestartSimulation() {
     _simulationTimer?.cancel();
-    if (_routePolyline.isEmpty) return;
+    if (_fullRoutePolyline.isEmpty) return;
 
-    _simulationPolylineIndex = 0;
     _simulationTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (_routePolyline.isEmpty) return;
+      if (_fullRoutePolyline.isEmpty) return;
 
-      if (_simulationPolylineIndex < _routePolyline.length - 1) {
+      if (_simulationPolylineIndex < _fullRoutePolyline.length - 1) {
         _simulationPolylineIndex++;
-        final currentPoint = _routePolyline[_simulationPolylineIndex];
-        final prevPoint = _routePolyline[_simulationPolylineIndex - 1];
+        final currentPoint = _fullRoutePolyline[_simulationPolylineIndex];
+        final prevPoint = _fullRoutePolyline[_simulationPolylineIndex - 1];
 
         _driverLocation = currentPoint;
         _driverHeading = _calculateBearing(prevPoint, currentPoint);
         _driverSpeedKmh = 28.0 + Random().nextInt(14); // 28 - 42 km/h
 
-        // Actualizar paso de giro si nos acercamos a un waypoint
+        // Actualizar paso de giro si nos acercamos a un waypoint y hablarlo por voz
         if (_routeSteps.isNotEmpty && _currentStepIndex < _routeSteps.length - 1) {
           final nextStep = _routeSteps[_currentStepIndex + 1];
           final distToNext = const Distance().as(LengthUnit.Meter, currentPoint, nextStep.location);
-          if (distToNext < 60) {
+          if (distToNext < 70) {
             _currentStepIndex++;
             _turnGuidance = _routeSteps[_currentStepIndex].instruction;
+            _speakCurrentInstruction();
           }
         }
+
+        // Actualizar distancia y tiempo restantes
+        final remainingFraction = 1.0 - (_simulationPolylineIndex / _fullRoutePolyline.length);
+        _routeDistanceKm = max(0.1, _routeDistanceKm * remainingFraction);
+        _routeDurationMin = max(1, (_routeDurationMin * remainingFraction).round());
 
         notifyListeners();
       } else {
         timer.cancel();
       }
     });
+  }
+
+  /// Recálculo forzado de ruta si el chofer se desvía o pulsa recalcular
+  Future<void> recalculateRoute() async {
+    _turnGuidance = "Recalculando ruta por desvío...";
+    _audioService.speakInstruction("Recalculando ruta.");
+    await calculateCurrentRoute();
   }
 
   double _calculateBearing(LatLng from, LatLng to) {
@@ -211,6 +243,7 @@ class ActiveRideController extends ChangeNotifier {
     } catch (_) {}
     _activeOrder = null;
     _currentStage = RideStage.assigned;
+    _turnGuidance = "Orden cancelada";
     notifyListeners();
   }
 
@@ -225,17 +258,21 @@ class ActiveRideController extends ChangeNotifier {
       case RideStage.assigned:
         _currentStage = RideStage.arrivedAtPickup;
         _turnGuidance = "Has llegado al Comercio. Solicita y verifica el pedido #${_activeOrder!.id}.";
+        _audioService.speakInstruction("Has llegado al comercio. Solicita el pedido al personal.");
         await orderRepository.updateOrderStatus(_activeOrder!.id, 'ARRIVED_AT_PICKUP');
         break;
       case RideStage.arrivedAtPickup:
         _currentStage = RideStage.inTransit;
         _driverLocation = LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng);
+        _audioService.speakInstruction("Iniciando ruta hacia el cliente. Conduce con precaución.");
         await orderRepository.updateOrderStatus(_activeOrder!.id, 'IN_TRANSIT');
         calculateCurrentRoute();
         break;
       case RideStage.inTransit:
         _currentStage = RideStage.delivered;
         _turnGuidance = "¡Entrega completada! Comprobante POD registrado en Cloudinary.";
+        _audioService.playEarningsCash();
+        _audioService.speakInstruction("¡Entrega completada exitosamente! Pago acreditado a tu billetera.");
         _simulationTimer?.cancel();
         await orderRepository.updateOrderStatus(
           _activeOrder!.id,
