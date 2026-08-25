@@ -185,6 +185,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               context,
                               MaterialPageRoute(builder: (_) => const AllOrdersFeedScreen()),
                             );
+                          } else if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(authCtrl.errorMessage ?? '⚠️ Error al iniciar sesión. Verifica tu correo y contraseña.'),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
                           }
                         },
                   style: ElevatedButton.styleFrom(

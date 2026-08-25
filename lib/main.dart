@@ -39,7 +39,7 @@ class OpenDspDriverApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Food Drive - Courier',
+      title: 'Food Drive - Repartidor',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const WelcomeOnboardingScreen(),

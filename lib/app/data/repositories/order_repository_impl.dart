@@ -81,7 +81,7 @@ class OrderRepositoryImpl implements OrderRepository {
       );
       return true;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 
@@ -104,7 +104,7 @@ class OrderRepositoryImpl implements OrderRepository {
       );
       return true;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 }

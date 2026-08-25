@@ -54,7 +54,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           ],
         ),
         actions: [
-          // Active ride shortcut badge if on active delivery
+          // Acceso rápido a navegación si hay un viaje activo
           if (activeRideCtrl.activeOrder != null)
             GestureDetector(
               onTap: () {
@@ -76,7 +76,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                     Icon(Icons.navigation, size: 12, color: AppColors.primaryDark),
                     SizedBox(width: 4),
                     Text(
-                      'Live Trip',
+                      'Viaje en Vivo',
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
                     ),
                   ],
@@ -88,7 +88,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('🔔 You have 2 new dispatch offers nearby!'),
+                  content: Text('🔔 ¡Tienes nuevas ofertas de despacho disponibles cerca!'),
                   backgroundColor: AppColors.primaryDark,
                 ),
               );
@@ -101,7 +101,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
         child: _buildSelectedTabContent(feedCtrl, activeRideCtrl, authCtrl),
       ),
 
-      // Bottom Navigation Bar
+      // Barra de Navegación Inferior
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -113,10 +113,10 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(icon: Icons.list_alt, label: 'Orders', index: 0),
-                _buildNavItem(icon: Icons.history, label: 'History', index: 1),
-                _buildNavItem(icon: Icons.account_balance_wallet_outlined, label: 'Wallet', index: 2),
-                _buildNavItem(icon: Icons.person_outline, label: 'Profile', index: 3),
+                _buildNavItem(icon: Icons.list_alt, label: 'Órdenes', index: 0),
+                _buildNavItem(icon: Icons.history, label: 'Historial', index: 1),
+                _buildNavItem(icon: Icons.account_balance_wallet_outlined, label: 'Billetera', index: 2),
+                _buildNavItem(icon: Icons.person_outline, label: 'Perfil', index: 3),
               ],
             ),
           ),
@@ -149,17 +149,19 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
     ActiveRideController activeRideCtrl,
     AuthController authCtrl,
   ) {
+    final isOnline = authCtrl.currentDriver?.isOnline ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title: All Orders
+        // Encabezado: Todas las Órdenes
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'All Orders',
+                'Todas las Órdenes',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -170,7 +172,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (authCtrl.currentDriver?.isOnline ?? false) ? AppColors.primaryLight : const Color(0xFFF1F5F9),
+                  color: isOnline ? AppColors.primaryLight : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -179,17 +181,17 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: (authCtrl.currentDriver?.isOnline ?? false) ? AppColors.primary : AppColors.textMuted,
+                        color: isOnline ? AppColors.primary : AppColors.textMuted,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      (authCtrl.currentDriver?.isOnline ?? false) ? 'Ready for Orders' : 'Offline',
+                      isOnline ? 'Listo para Pedidos' : 'Desconectado',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: (authCtrl.currentDriver?.isOnline ?? false) ? AppColors.primaryDark : AppColors.textMuted,
+                        color: isOnline ? AppColors.primaryDark : AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -199,7 +201,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           ),
         ),
 
-        // Tab Selector: Pickup Request / Delivery Request
+        // Selector de Pestañas: Solicitud de Recogida / Solicitud de Entrega
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           child: Row(
@@ -220,7 +222,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                         ),
                       ),
                     Text(
-                      'Pickup Request',
+                      'Solicitud de Recogida',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: feedCtrl.selectedTab == FeedTab.pickupRequest
@@ -251,7 +253,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                         ),
                       ),
                     Text(
-                      'Delivery Request',
+                      'Solicitud de Entrega',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: feedCtrl.selectedTab == FeedTab.deliveryRequest
@@ -270,36 +272,62 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Orders Scroll List with Pull to Refresh
+        // Lista de Órdenes con Pull to Refresh
         Expanded(
           child: RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () => feedCtrl.fetchOrders(authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf'),
             child: feedCtrl.isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    itemCount: feedCtrl.orders.length,
-                    itemBuilder: (context, index) {
-                      final order = feedCtrl.orders[index];
-                      return OrderFeedCard(
-                        order: order,
-                        onPickOrder: () async {
-                          final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
-                          final accepted = await feedCtrl.acceptOrder(order.id, driverId);
-                          if (accepted && mounted) {
-                            activeRideCtrl.setActiveOrder(order);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LiveMapNavigationScreen(),
-                              ),
-                            );
-                          }
+                : feedCtrl.orders.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.inbox_outlined, size: 48, color: AppColors.textMuted),
+                            SizedBox(height: 12),
+                            Text(
+                              'No hay órdenes pendientes en este momento',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Mantente en línea para recibir ofertas automáticas.',
+                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        itemCount: feedCtrl.orders.length,
+                        itemBuilder: (context, index) {
+                          final order = feedCtrl.orders[index];
+                          return OrderFeedCard(
+                            order: order,
+                            onPickOrder: () async {
+                              final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
+                              final accepted = await feedCtrl.acceptOrder(order.id, driverId);
+                              if (accepted && mounted) {
+                                activeRideCtrl.setActiveOrder(order);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LiveMapNavigationScreen(),
+                                  ),
+                                );
+                              } else if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('⚠️ La orden ya fue tomada por otro repartidor o no está disponible.'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            },
+                          );
                         },
-                      );
-                    },
-                  ),
+                      ),
           ),
         ),
       ],
@@ -308,9 +336,9 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
 
   Widget _buildHistoryTab() {
     final historyItems = [
-      {'id': '#434565', 'pickup': '42 King Mission', 'dropoff': '67 Hyatt Ext', 'price': '\$72.00', 'time': 'Today, 10:15 AM'},
-      {'id': '#434564', 'pickup': 'Av. San Martín 450', 'dropoff': 'Calle 5 Equipetrol', 'price': '\$35.00', 'time': 'Yesterday, 08:30 PM'},
-      {'id': '#434563', 'pickup': 'Mall Las Brisas', 'dropoff': 'Condominio Sevilla', 'price': '\$48.50', 'time': 'Yesterday, 06:10 PM'},
+      {'id': '#434565', 'pickup': '42 King Mission', 'dropoff': '67 Hyatt Ext', 'price': '\$72.00', 'time': 'Hoy, 10:15 AM'},
+      {'id': '#434564', 'pickup': 'Av. San Martín 450', 'dropoff': 'Calle 5 Equipetrol', 'price': '\$35.00', 'time': 'Ayer, 08:30 PM'},
+      {'id': '#434563', 'pickup': 'Mall Las Brisas', 'dropoff': 'Condominio Sevilla', 'price': '\$48.50', 'time': 'Ayer, 06:10 PM'},
     ];
 
     return Padding(
@@ -319,7 +347,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Delivery History',
+            'Historial de Entregas',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 16),
@@ -353,7 +381,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Order ${item['id']}',
+                              'Orden ${item['id']}',
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                             ),
                             Text(
@@ -410,14 +438,14 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               const Icon(Icons.star, size: 16, color: AppColors.secondary),
               const SizedBox(width: 4),
               Text(
-                '${driver?.rating ?? 4.9} • Verified Express Driver',
+                '${driver?.rating ?? 4.9} • Conductor Express Verificado',
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
-          // Profile Metrics Box
+          // Métricas de Perfil
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -428,16 +456,16 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildProfileMetric('142', 'Total Rides'),
-                _buildProfileMetric('99.2%', 'Acceptance'),
-                _buildProfileMetric('15 min', 'Avg Speed'),
+                _buildProfileMetric('142', 'Entregas'),
+                _buildProfileMetric('99.2%', 'Aceptación'),
+                _buildProfileMetric('15 min', 'Vel. Promedio'),
               ],
             ),
           ),
 
           const SizedBox(height: 20),
 
-          // Vehicle Card
+          // Tarjeta de Vehículo
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -448,7 +476,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Vehicle Information', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                const Text('Información del Vehículo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -458,7 +486,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(driver?.vehicleType ?? 'MOTORCYCLE', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                        Text('Plate: ${driver?.vehiclePlate ?? "1234-XYZ"}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('Placa: ${driver?.vehiclePlate ?? "1234-XYZ"}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
                   ],

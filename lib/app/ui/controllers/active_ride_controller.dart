@@ -3,10 +3,10 @@ import '../../domain/repositories/order_repository.dart';
 import '../../domain/entities/order_entity.dart';
 
 enum RideStage {
-  assigned,          // Stage 1: Heading to pickup -> Button: "ARRIVED AT PICKUP"
-  arrivedAtPickup,   // Stage 2: At merchant -> Button: "CONFIRM PICKUP (IN TRANSIT)"
-  inTransit,         // Stage 3: On the way to customer -> Button: "DELIVERED"
-  delivered,         // Stage 4: Completed
+  assigned,          // Etapa 1: En ruta a recogida -> Botón: "LLEGADA AL LOCAL DE RECOGIDA"
+  arrivedAtPickup,   // Etapa 2: En el comercio -> Botón: "CONFIRMAR RECOGIDA (EN CAMINO)"
+  inTransit,         // Etapa 3: En camino al cliente final -> Botón: "ENTREGADO (Prueba POD)"
+  delivered,         // Etapa 4: Completado y acreditado en billetera
 }
 
 class ActiveRideController extends ChangeNotifier {
@@ -15,7 +15,7 @@ class ActiveRideController extends ChangeNotifier {
   OrderEntity? _activeOrder;
   RideStage _currentStage = RideStage.assigned;
   bool _is3DView = false;
-  String _turnGuidance = "After 500m, turn left into Av. San Martín";
+  String _turnGuidance = "En 500m, gira a la izquierda hacia Av. San Martín";
 
   OrderEntity? get activeOrder => _activeOrder;
   RideStage get currentStage => _currentStage;
@@ -23,7 +23,7 @@ class ActiveRideController extends ChangeNotifier {
   String get turnGuidance => _turnGuidance;
 
   ActiveRideController({required this.orderRepository}) {
-    // Initialize with active order matching user's design reference (#434567)
+    // Inicialización con orden activa de demostración (#434567)
     _activeOrder = OrderEntity(
       id: '434567',
       status: OrderDeliveryStatus.assigned,
@@ -35,7 +35,7 @@ class ActiveRideController extends ChangeNotifier {
       dropoffLng: -63.1700,
       price: 54.0,
       driverPayout: 43.20,
-      packageNotes: 'Call when you will be near entrance',
+      packageNotes: 'Llamar al llegar a la entrada principal',
       trackingToken: 'track-434567',
       estimatedTime: '12:35',
       estimatedDistanceKm: 1.5,
@@ -51,7 +51,7 @@ class ActiveRideController extends ChangeNotifier {
   void setActiveOrder(OrderEntity order) {
     _activeOrder = order;
     _currentStage = RideStage.assigned;
-    _turnGuidance = "Head North towards ${order.pickupAddress.split(' ')[0]}";
+    _turnGuidance = "Dirígete hacia el punto de recogida en ${order.pickupAddress.split(' ')[0]}";
     notifyListeners();
   }
 
@@ -61,17 +61,17 @@ class ActiveRideController extends ChangeNotifier {
     switch (_currentStage) {
       case RideStage.assigned:
         _currentStage = RideStage.arrivedAtPickup;
-        _turnGuidance = "You have arrived at Pickup Location";
+        _turnGuidance = "Has llegado al punto de recogida. Solicita el paquete.";
         await orderRepository.updateOrderStatus(_activeOrder!.id, 'ARRIVED_AT_PICKUP');
         break;
       case RideStage.arrivedAtPickup:
         _currentStage = RideStage.inTransit;
-        _turnGuidance = "In Transit: Head towards ${_activeOrder!.dropoffAddress}";
+        _turnGuidance = "En camino: Dirígete hacia ${_activeOrder!.dropoffAddress}";
         await orderRepository.updateOrderStatus(_activeOrder!.id, 'IN_TRANSIT');
         break;
       case RideStage.inTransit:
         _currentStage = RideStage.delivered;
-        _turnGuidance = "Delivered successfully! Proof confirmed.";
+        _turnGuidance = "¡Entrega completada! Comprobante POD registrado.";
         await orderRepository.updateOrderStatus(_activeOrder!.id, 'DELIVERED');
         break;
       case RideStage.delivered:

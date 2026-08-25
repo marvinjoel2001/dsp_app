@@ -24,7 +24,7 @@ class DriverSideDrawer extends StatelessWidget {
           children: [
             const SizedBox(height: 20),
 
-            // Driver Header: Avatar, Name, Rating & Online Toggle
+            // Encabezado del Conductor: Avatar, Nombre, Calificación y Selector Online
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -46,7 +46,7 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(width: 14),
 
-                  // Name & Rating
+                  // Nombre y Calificación
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +82,7 @@ class DriverSideDrawer extends StatelessWidget {
                     ),
                   ),
 
-                  // Online / Offline Switch
+                  // Interruptor En Línea / Fuera de Línea
                   GestureDetector(
                     onTap: () {
                       final newState = !(driver?.isOnline ?? false);
@@ -90,7 +90,9 @@ class DriverSideDrawer extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            newState ? '🟢 You are now ONLINE and visible on Redis GEO' : '⚪ You are now OFFLINE',
+                            newState
+                                ? '🟢 Ahora estás EN LÍNEA y visible en Redis GEO'
+                                : '⚪ Has pasado a estado FUERA DE LÍNEA',
                           ),
                           backgroundColor: newState ? AppColors.primaryDark : AppColors.textPrimary,
                           duration: const Duration(seconds: 2),
@@ -118,7 +120,7 @@ class DriverSideDrawer extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            (driver?.isOnline ?? false) ? 'ONLINE' : 'OFFLINE',
+                            (driver?.isOnline ?? false) ? 'EN LÍNEA' : 'OFFLINE',
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -137,15 +139,15 @@ class DriverSideDrawer extends StatelessWidget {
             const Divider(color: AppColors.borderLight, height: 1),
             const SizedBox(height: 16),
 
-            // Navigation Links
+            // Enlaces de Navegación
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  // Active Rides (Highlighted in Emerald Pill)
+                  // Viajes Activos
                   _buildDrawerItem(
                     icon: Icons.alt_route,
-                    title: 'Active Rides',
+                    title: 'Viajes Activos',
                     isSelected: true,
                     onTap: () {
                       Navigator.pop(context);
@@ -159,10 +161,10 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Earnings & Wallet
+                  // Ganancias y Billetera
                   _buildDrawerItem(
                     icon: Icons.account_balance_wallet_outlined,
-                    title: 'Earnings & Wallet',
+                    title: 'Ganancias y Billetera',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -175,10 +177,10 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Vehicle Details Dialog
+                  // Detalles del Vehículo
                   _buildDrawerItem(
                     icon: Icons.two_wheeler_outlined,
-                    title: 'Vehicle Details',
+                    title: 'Detalles del Vehículo',
                     onTap: () {
                       Navigator.pop(context);
                       _showVehicleDialog(context, driver);
@@ -186,10 +188,10 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Performance Dialog
+                  // Rendimiento
                   _buildDrawerItem(
                     icon: Icons.trending_up,
-                    title: 'Performance',
+                    title: 'Rendimiento y Métricas',
                     onTap: () {
                       Navigator.pop(context);
                       _showPerformanceDialog(context);
@@ -197,10 +199,10 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Settings Dialog
+                  // Configuración
                   _buildDrawerItem(
                     icon: Icons.settings_outlined,
-                    title: 'Settings',
+                    title: 'Configuración',
                     onTap: () {
                       Navigator.pop(context);
                       _showSettingsDialog(context);
@@ -208,10 +210,10 @@ class DriverSideDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // Help & Support Dialog
+                  // Ayuda y Soporte
                   _buildDrawerItem(
                     icon: Icons.help_outline,
-                    title: 'Help & Support',
+                    title: 'Ayuda y Soporte de Despacho',
                     onTap: () {
                       Navigator.pop(context);
                       _showSupportDialog(context);
@@ -257,21 +259,21 @@ class DriverSideDrawer extends StatelessWidget {
           children: const [
             Icon(Icons.two_wheeler, color: AppColors.primary),
             SizedBox(width: 10),
-            Text('Vehicle Details'),
+            Text('Detalles del Vehículo'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Type', driver?.vehicleType ?? 'MOTORCYCLE'),
-            _buildDetailRow('Plate', driver?.vehiclePlate ?? '1234-XYZ'),
-            _buildDetailRow('Model', 'Honda CB 160cc (2024)'),
-            _buildDetailRow('Insurance', 'SOAT Valid until Dec 2026'),
+            _buildDetailRow('Tipo', driver?.vehicleType ?? 'MOTORCYCLE'),
+            _buildDetailRow('Placa', driver?.vehiclePlate ?? '1234-XYZ'),
+            _buildDetailRow('Modelo', 'Honda CB 160cc (2024)'),
+            _buildDetailRow('Seguro', 'SOAT Vigente hasta Dic 2026'),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
         ],
       ),
     );
@@ -282,18 +284,18 @@ class DriverSideDrawer extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Performance Stats'),
+        title: const Text('Estadísticas de Rendimiento'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildDetailRow('Rating', '4.9 ★ (Top 5% of Couriers)'),
-            _buildDetailRow('Acceptance Rate', '99.2%'),
-            _buildDetailRow('On-Time Delivery', '98.5%'),
-            _buildDetailRow('Completed Deliveries', '142 orders'),
+            _buildDetailRow('Calificación', '4.9 ★ (Top 5% de Conductores)'),
+            _buildDetailRow('Tasa de Aceptación', '99.2%'),
+            _buildDetailRow('Puntualidad', '98.5% a tiempo'),
+            _buildDetailRow('Órdenes Completadas', '142 entregas'),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
         ],
       ),
     );
@@ -304,18 +306,18 @@ class DriverSideDrawer extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Driver App Settings'),
+        title: const Text('Ajustes de la App de Repartidor'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildDetailRow('Map Engine', 'Mapbox Vector Streets v12'),
-            _buildDetailRow('GPS Telemetry Frequency', 'Every 5 seconds'),
-            _buildDetailRow('Sound Notifications', 'Enabled'),
-            _buildDetailRow('Language', 'Español / English'),
+            _buildDetailRow('Motor de Mapas', 'Mapbox Vector Streets v12'),
+            _buildDetailRow('Frecuencia Telemetría GPS', 'Cada 5 segundos'),
+            _buildDetailRow('Sonido y Notificaciones', 'Habilitado'),
+            _buildDetailRow('Idioma', 'Español (Predeterminado)'),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
         ],
       ),
     );
@@ -326,23 +328,23 @@ class DriverSideDrawer extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Help & Dispatch Support'),
+        title: const Text('Soporte y Central de Despacho'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text('Need urgent assistance with an active delivery?', style: TextStyle(fontSize: 13, height: 1.4)),
+            Text('¿Necesitas asistencia inmediata con un viaje o entrega activa?', style: TextStyle(fontSize: 13, height: 1.4)),
             SizedBox(height: 12),
-            Text('📞 Dispatch Hotline: +591 700-00000', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text('📞 Línea de Despacho: +591 700-00000', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
-            Text('💬 WhatsApp Ops: +591 711-22334', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+            Text('💬 WhatsApp Operaciones: +591 711-22334', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('OK'),
+            child: const Text('Aceptar'),
           ),
         ],
       ),
