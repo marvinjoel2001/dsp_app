@@ -7,7 +7,7 @@ import 'app/data/repositories/order_repository_impl.dart';
 import 'app/ui/controllers/auth_controller.dart';
 import 'app/ui/controllers/orders_feed_controller.dart';
 import 'app/ui/controllers/active_ride_controller.dart';
-import 'app/ui/views/auth/welcome_onboarding_screen.dart';
+import 'app/ui/views/auth/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,10 +39,10 @@ class OpenDspDriverApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Food Drive - Repartidor',
+      title: 'Chiringuito Driver',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const WelcomeOnboardingScreen(),
+      home: const SplashScreen(),
     );
   }
 }

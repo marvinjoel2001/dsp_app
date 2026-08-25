@@ -1,5 +1,5 @@
 name: dsp_driver_app
-description: "OpenDSP Driver Mobile App - Food Drive & Courier Logistics Engine with Mapbox Live Navigation"
+description: "Chiringuito Driver Mobile App - Food & Courier Logistics Engine with Mapbox Live Navigation"
 publish_to: "none"
 version: 1.0.0+1
 
@@ -19,13 +19,19 @@ dependencies:
   dio: ^5.7.0
   socket_io_client: ^3.0.2
 
-  # Mapbox Vector & Raster Tile Navigation (NO Google Maps!)
+  # Mapbox Vector & Raster Tile Navigation
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
 
+  # Native Device Capabilities & Permissions
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+  url_launcher: ^6.3.1
+  image_picker: ^1.1.2
+
   # Local Persistence & Utilities
   shared_preferences: ^2.3.2
-  intl: ^0.19.0
+  intl: ^0.20.2
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_svg_icons.dart';
+import '../../../core/theme/page_transitions.dart';
 import 'login_screen.dart';
-import '../feed/all_orders_feed_screen.dart';
+import 'register_driver_screen.dart';
 
 class WelcomeOnboardingScreen extends StatelessWidget {
   const WelcomeOnboardingScreen({super.key});
@@ -17,30 +19,19 @@ class WelcomeOnboardingScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 20),
 
-              // Logo de la Marca: FOOD DRIVE
+              // Logo Oficial SVG: CHIRINGUITO DRIVER
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.eco_rounded,
-                      color: AppColors.primaryDark,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  AppSvgIcons.chiringuitoLogo(size: 34),
+                  const SizedBox(width: 12),
                   const Text(
-                    'FOOD DRIVE',
+                    'CHIRINGUITO DRIVER',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: AppColors.primaryDeep,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ],
@@ -48,44 +39,38 @@ class WelcomeOnboardingScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // Ilustración del Repartidor en Scooter Verde
+              // Ilustración SVG de Alta Definición del Repartidor Express
               Container(
                 width: 240,
                 height: 240,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withOpacity(0.4),
+                  color: AppColors.primaryLight.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Resplandor cálido
                       Container(
                         width: 170,
                         height: 170,
                         decoration: BoxDecoration(
-                          color: AppColors.secondaryLight.withOpacity(0.5),
+                          color: AppColors.secondaryLight.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      // Icono de Moto y Repartidor
                       Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
-                            Icons.two_wheeler,
-                            size: 110,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(height: 4),
-                          DecoratedBox(
+                        children: [
+                          AppSvgIcons.motorcycleCourier(size: 110),
+                          const SizedBox(height: 6),
+                          const DecoratedBox(
                             decoration: BoxDecoration(
                               color: AppColors.secondary,
                               borderRadius: BorderRadius.all(Radius.circular(20)),
                             ),
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                               child: Text(
                                 'REPARTIDOR EXPRESS',
                                 style: TextStyle(
@@ -108,10 +93,10 @@ class WelcomeOnboardingScreen extends StatelessWidget {
 
               // Título Principal
               const Text(
-                'Entrega con Food Drive.',
+                'Entrega con Chiringuito.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 25,
+                  fontSize: 26,
                   fontWeight: FontWeight.w900,
                   color: Color(0xFF0F172A),
                   letterSpacing: -0.5,
@@ -121,30 +106,25 @@ class WelcomeOnboardingScreen extends StatelessWidget {
 
               // Subtítulo
               const Text(
-                'Gana dinero a tu manera.\nCuando quieras y como quieras.',
+                'Gana dinero a tu manera con despacho inteligente.\nRecibe pedidos de comida y encomiendas en tiempo real.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                  color: Color(0xFF475569),
                 ),
               ),
 
               const SizedBox(height: 36),
 
-              // CTA 1: Empezar ->
+              // CTA 1: Empezar (Crear Cuenta)
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AllOrdersFeedScreen(),
-                      ),
-                    );
+                    context.pushAnimated(const RegisterDriverScreen());
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -153,11 +133,11 @@ class WelcomeOnboardingScreen extends StatelessWidget {
                     ),
                     elevation: 0,
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
-                        'Empezar',
+                        'Empezar (Crear Cuenta)',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -179,12 +159,7 @@ class WelcomeOnboardingScreen extends StatelessWidget {
                 height: 56,
                 child: OutlinedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
-                      ),
-                    );
+                    context.pushAnimated(const LoginScreen());
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),

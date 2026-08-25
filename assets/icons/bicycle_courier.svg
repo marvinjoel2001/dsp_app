@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Rueda Trasera -->
+  <circle cx="16" cy="46" r="10" fill="none" stroke="#0F172A" stroke-width="3.5" />
+  <!-- Rueda Delantera -->
+  <circle cx="48" cy="46" r="10" fill="none" stroke="#0F172A" stroke-width="3.5" />
+  <!-- Cuadro Bicicleta -->
+  <path d="M16 46 L30 46 L38 32 L22 32 Z" fill="none" stroke="#059669" stroke-width="3.5" stroke-linejoin="round" />
+  <path d="M30 46 L24 24" stroke="#059669" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M38 32 L44 24 L48 46" fill="none" stroke="#059669" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Asiento y Manillar -->
+  <path d="M21 24 H27" stroke="#0F172A" stroke-width="4" stroke-linecap="round" />
+  <path d="M41 22 H47" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round" />
+  <!-- Mochila Ciclista -->
+  <circle cx="28" cy="14" r="4.5" fill="#059669" />
+  <rect x="18" y="16" width="9" height="11" rx="2.5" fill="#F59E0B" />
+</svg>

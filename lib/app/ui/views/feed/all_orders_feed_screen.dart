@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_svg_icons.dart';
+import '../../../core/theme/page_transitions.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../controllers/orders_feed_controller.dart';
 import '../../controllers/active_ride_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/order_feed_card.dart';
+import '../../widgets/incoming_order_modal.dart';
+import '../../widgets/connectivity_status_banner.dart';
 import '../drawer/driver_side_drawer.dart';
 import '../navigation/live_map_navigation_screen.dart';
 import '../wallet/earnings_wallet_screen.dart';
+import '../profile/driver_documents_verification_screen.dart';
+import '../profile/edit_driver_profile_screen.dart';
 
 class AllOrdersFeedScreen extends StatefulWidget {
   const AllOrdersFeedScreen({super.key});
@@ -18,19 +27,55 @@ class AllOrdersFeedScreen extends StatefulWidget {
 
 class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
   int _selectedBottomNavIndex = 0;
+  final MapController _homeMapController = MapController();
+
+  void _showIncomingOrderModal(BuildContext context, dynamic order) {
+    final activeRideCtrl = context.read<ActiveRideController>();
+    final feedCtrl = context.read<OrdersFeedController>();
+    final authCtrl = context.read<AuthController>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => IncomingOrderModal(
+        order: order,
+        onAccept: () async {
+          Navigator.pop(context);
+          final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
+          final accepted = await feedCtrl.acceptOrder(order.id, driverId);
+          if (accepted && mounted) {
+            activeRideCtrl.setActiveOrder(order);
+            context.pushAnimated(const LiveMapNavigationScreen());
+          }
+        },
+        onDecline: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Orden rechazada. Buscando nuevas solicitudes...'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final feedCtrl = context.watch<OrdersFeedController>();
     final activeRideCtrl = context.watch<ActiveRideController>();
     final authCtrl = context.watch<AuthController>();
-    final driver = authCtrl.currentDriver;
+
+    final isOnline = authCtrl.currentDriver?.isOnline ?? false;
+    final isVerified = authCtrl.isVerified;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const DriverSideDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
@@ -40,70 +85,122 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.eco, color: AppColors.primary, size: 18),
-            SizedBox(width: 6),
-            Text(
-              'Food Drive',
+          children: [
+            AppSvgIcons.chiringuitoLogo(size: 26),
+            const SizedBox(width: 8),
+            const Text(
+              'Chiringuito Driver',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
           ],
         ),
         actions: [
-          // Acceso rápido a navegación si hay un viaje activo
-          if (activeRideCtrl.activeOrder != null)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LiveMapNavigationScreen()),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          // Conmutador Rápido Online/Offline
+          GestureDetector(
+            onTap: () {
+              final nextState = !isOnline;
+              authCtrl.toggleOnline(nextState);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    nextState
+                        ? '🟢 Ahora estás EN LÍNEA y recibiendo pedidos de Chiringuito.'
+                        : '⚪ Has pasado a estado FUERA DE LÍNEA.',
+                  ),
+                  backgroundColor: nextState ? AppColors.primaryDark : AppColors.textPrimary,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isOnline ? AppColors.primaryLight : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isOnline ? AppColors.primary : const Color(0xFFCBD5E1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: isOnline ? AppColors.primary : AppColors.textMuted,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isOnline ? 'ONLINE' : 'OFFLINE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: isOnline ? AppColors.primaryDark : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Banner de Conectividad si está offline
+            ConnectivityStatusBanner(isOnline: isOnline),
+
+            // Banner de Advertencia si no está verificado
+            if (!isVerified) ...[
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary),
+                  color: AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.4)),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.navigation, size: 12, color: AppColors.primaryDark),
-                    SizedBox(width: 4),
-                    Text(
-                      'Viaje en Vivo',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 22),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Cuenta en revisión. Sube tus documentos para aceptar órdenes.',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.pushAnimated(const DriverDocumentsVerificationScreen()),
+                      child: const Text('Subir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.warning)),
                     ),
                   ],
                 ),
               ),
+            ],
+
+            // Contenido Principal Según Tab Seleccionado
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _buildSelectedTabContent(feedCtrl, activeRideCtrl, authCtrl, isOnline),
+              ),
             ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined, color: AppColors.textPrimary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🔔 ¡Tienes nuevas ofertas de despacho disponibles cerca!'),
-                  backgroundColor: AppColors.primaryDark,
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: SafeArea(
-        child: _buildSelectedTabContent(feedCtrl, activeRideCtrl, authCtrl),
+          ],
+        ),
       ),
 
-      // Barra de Navegación Inferior
+      // Barra de Navegación Inferior Limpia
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: AppColors.borderLight, width: 1)),
         ),
@@ -113,8 +210,8 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(icon: Icons.list_alt, label: 'Órdenes', index: 0),
-                _buildNavItem(icon: Icons.history, label: 'Historial', index: 1),
+                _buildNavItem(icon: Icons.map_outlined, label: 'Inicio', index: 0),
+                _buildNavItem(icon: Icons.list_alt, label: 'Órdenes', index: 1),
                 _buildNavItem(icon: Icons.account_balance_wallet_outlined, label: 'Billetera', index: 2),
                 _buildNavItem(icon: Icons.person_outline, label: 'Perfil', index: 3),
               ],
@@ -129,279 +226,285 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
     OrdersFeedController feedCtrl,
     ActiveRideController activeRideCtrl,
     AuthController authCtrl,
+    bool isOnline,
   ) {
     switch (_selectedBottomNavIndex) {
       case 0:
-        return _buildOrdersFeedTab(feedCtrl, activeRideCtrl, authCtrl);
+        return _buildHomeMapShell(feedCtrl, activeRideCtrl, authCtrl, isOnline);
       case 1:
-        return _buildHistoryTab();
+        return _buildOrdersListTab(feedCtrl, activeRideCtrl, authCtrl);
       case 2:
-        return const EarningsWalletScreen();
+        return const EarningsWalletScreen(showAppBarLeading: false);
       case 3:
         return _buildProfileTab(authCtrl);
       default:
-        return _buildOrdersFeedTab(feedCtrl, activeRideCtrl, authCtrl);
+        return _buildHomeMapShell(feedCtrl, activeRideCtrl, authCtrl, isOnline);
     }
   }
 
-  Widget _buildOrdersFeedTab(
+  Widget _buildHomeMapShell(
     OrdersFeedController feedCtrl,
     ActiveRideController activeRideCtrl,
     AuthController authCtrl,
+    bool isOnline,
   ) {
-    final isOnline = authCtrl.currentDriver?.isOnline ?? false;
+    const driverLocation = LatLng(-17.7833, -63.1821);
+    final hasActiveOrder = activeRideCtrl.activeOrder != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      key: const ValueKey('home_map_shell'),
       children: [
-        // Encabezado: Todas las Órdenes
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Todas las Órdenes',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isOnline ? AppColors.primaryLight : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: isOnline ? AppColors.primary : AppColors.textMuted,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isOnline ? 'Listo para Pedidos' : 'Desconectado',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: isOnline ? AppColors.primaryDark : AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        // Mapa Mapbox Light Base
+        FlutterMap(
+          mapController: _homeMapController,
+          options: const MapOptions(
+            initialCenter: driverLocation,
+            initialZoom: 14.5,
+            interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
           ),
+          children: [
+            TileLayer(
+              urlTemplate: ApiConstants.mapboxLightStyleUrl,
+              userAgentPackageName: 'com.chiringuito.driver',
+              maxZoom: 19,
+              subdomains: const ['a', 'b', 'c', 'd'],
+            ),
+
+            // Marcador SVG del Repartidor en Vivo
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: driverLocation,
+                  width: 52,
+                  height: 52,
+                  child: AppSvgIcons.driverLiveMarker(size: 52),
+                ),
+              ],
+            ),
+          ],
         ),
 
-        // Selector de Pestañas: Solicitud de Recogida / Solicitud de Entrega
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => feedCtrl.setTab(FeedTab.pickupRequest),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (feedCtrl.selectedTab == FeedTab.pickupRequest)
-                      Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
+        // Panel Inferior Dinámico
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: hasActiveOrder
+              // Tarjeta de Viaje Activo
+              ? Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.primary, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.18),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
-                    Text(
-                      'Solicitud de Recogida',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: feedCtrl.selectedTab == FeedTab.pickupRequest
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                        color: feedCtrl.selectedTab == FeedTab.pickupRequest
-                            ? AppColors.textPrimary
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              GestureDetector(
-                onTap: () => feedCtrl.setTab(FeedTab.deliveryRequest),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (feedCtrl.selectedTab == FeedTab.deliveryRequest)
-                      Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    Text(
-                      'Solicitud de Entrega',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: feedCtrl.selectedTab == FeedTab.deliveryRequest
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                        color: feedCtrl.selectedTab == FeedTab.deliveryRequest
-                            ? AppColors.textPrimary
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Lista de Órdenes con Pull to Refresh
-        Expanded(
-          child: RefreshIndicator(
-            color: AppColors.primary,
-            onRefresh: () => feedCtrl.fetchOrders(authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf'),
-            child: feedCtrl.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : feedCtrl.orders.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.inbox_outlined, size: 48, color: AppColors.textMuted),
-                            SizedBox(height: 12),
-                            Text(
-                              'No hay órdenes pendientes en este momento',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Mantente en línea para recibir ofertas automáticas.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            child: const Text(
+                              'VIAJE EN CURSO',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
+                            ),
+                          ),
+                          Text(
+                            '+\$${activeRideCtrl.activeOrder?.driverPayout.toStringAsFixed(2) ?? "43.20"} USD',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        activeRideCtrl.activeOrder?.pickupAddress ?? 'Restaurante El Chiringuito',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            context.pushAnimated(const LiveMapNavigationScreen());
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                          child: const Text('Continuar Navegación GPS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : isOnline
+                  // Estado Online: Radar y Órdenes Disponibles
+                  ? Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  'Buscando ofertas de despacho cercanas...',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (feedCtrl.orders.isNotEmpty) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showIncomingOrderModal(context, feedCtrl.orders.first),
+                                icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
+                                label: Text(
+                                  'Ver Nueva Oferta (+\$${feedCtrl.orders.first.driverPayout.toStringAsFixed(2)} USD)',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                              ),
+                            ),
+                          ] else ...[
+                            const Text(
+                              'Te alertaremos automáticamente cuando entre un pedido.',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                             ),
                           ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        itemCount: feedCtrl.orders.length,
-                        itemBuilder: (context, index) {
-                          final order = feedCtrl.orders[index];
-                          return OrderFeedCard(
-                            order: order,
-                            onPickOrder: () async {
-                              final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
-                              final accepted = await feedCtrl.acceptOrder(order.id, driverId);
-                              if (accepted && mounted) {
-                                activeRideCtrl.setActiveOrder(order);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LiveMapNavigationScreen(),
-                                  ),
-                                );
-                              } else if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('⚠️ La orden ya fue tomada por otro repartidor o no está disponible.'),
-                                    backgroundColor: AppColors.error,
-                                  ),
-                                );
-                              }
-                            },
-                          );
-                        },
+                        ],
                       ),
-          ),
+                    )
+                  // Estado Offline: Tarjeta de descanso
+                  : Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Estás Fuera de Línea',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Conéctate a tu turno para empezar a recibir solicitudes de despacho en tiempo real.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () => authCtrl.toggleOnline(true),
+                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                              child: const Text(
+                                'CONECTARME AHORA',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryTab() {
-    final historyItems = [
-      {'id': '#434565', 'pickup': '42 King Mission', 'dropoff': '67 Hyatt Ext', 'price': '\$72.00', 'time': 'Hoy, 10:15 AM'},
-      {'id': '#434564', 'pickup': 'Av. San Martín 450', 'dropoff': 'Calle 5 Equipetrol', 'price': '\$35.00', 'time': 'Ayer, 08:30 PM'},
-      {'id': '#434563', 'pickup': 'Mall Las Brisas', 'dropoff': 'Condominio Sevilla', 'price': '\$48.50', 'time': 'Ayer, 06:10 PM'},
-    ];
-
+  Widget _buildOrdersListTab(
+    OrdersFeedController feedCtrl,
+    ActiveRideController activeRideCtrl,
+    AuthController authCtrl,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      key: const ValueKey('orders_list_tab'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Historial de Entregas',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+            'Órdenes Disponibles',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
-              itemCount: historyItems.length,
-              itemBuilder: (context, index) {
-                final item = historyItems[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.borderLight),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.check_circle, color: AppColors.primaryDark, size: 20),
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () => feedCtrl.fetchOrders(authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf'),
+              child: feedCtrl.orders.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.inbox_outlined, size: 48, color: AppColors.textMuted),
+                          SizedBox(height: 10),
+                          Text('No hay órdenes en espera', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                        ],
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Orden ${item['id']}',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                            ),
-                            Text(
-                              '${item['pickup']} → ${item['dropoff']}',
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(item['time']!, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        item['price']!,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                    )
+                  : ListView.builder(
+                      itemCount: feedCtrl.orders.length,
+                      itemBuilder: (context, index) {
+                        final order = feedCtrl.orders[index];
+                        return OrderFeedCard(
+                          order: order,
+                          onPickOrder: () async {
+                            _showIncomingOrderModal(context, order);
+                          },
+                        );
+                      },
+                    ),
             ),
           ),
         ],
@@ -411,25 +514,27 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
 
   Widget _buildProfileTab(AuthController authCtrl) {
     final driver = authCtrl.currentDriver;
+    final isVerified = authCtrl.isVerified;
+
     return SingleChildScrollView(
+      key: const ValueKey('profile_tab'),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 76,
+            height: 76,
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 3),
+              border: Border.all(color: AppColors.primary, width: 2.5),
             ),
-            child: const Icon(Icons.person, size: 48, color: AppColors.primaryDark),
+            child: const Icon(Icons.person, size: 44, color: AppColors.primaryDark),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            driver?.fullName ?? 'Alex Courier',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+            driver?.fullName ?? 'Alex Repartidor',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 4),
           Row(
@@ -437,98 +542,97 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             children: [
               const Icon(Icons.star, size: 16, color: AppColors.secondary),
               const SizedBox(width: 4),
-              Text(
-                '${driver?.rating ?? 4.9} • Conductor Express Verificado',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              Text('${driver?.rating ?? 4.9} • Conductor Chiringuito', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isVerified ? AppColors.primaryLight : AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isVerified ? 'VERIFICADO' : 'PENDIENTE',
+                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: isVerified ? AppColors.primaryDark : AppColors.warning),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-
-          // Métricas de Perfil
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildProfileMetric('142', 'Entregas'),
-                _buildProfileMetric('99.2%', 'Aceptación'),
-                _buildProfileMetric('15 min', 'Vel. Promedio'),
-              ],
-            ),
-          ),
-
           const SizedBox(height: 20),
 
-          // Tarjeta de Vehículo
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Información del Vehículo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.two_wheeler, color: AppColors.primary, size: 24),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(driver?.vehicleType ?? 'MOTORCYCLE', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                        Text('Placa: ${driver?.vehiclePlate ?? "1234-XYZ"}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          // Acciones de Perfil
+          _buildProfileOption(
+            icon: Icons.verified_user_outlined,
+            title: 'Documentos y Verificación',
+            subtitle: isVerified ? 'Documentación aprobada ✅' : 'Subir DNI, Licencia y SOAT ⏳',
+            onTap: () => context.pushAnimated(const DriverDocumentsVerificationScreen()),
+          ),
+          const SizedBox(height: 10),
+
+          _buildProfileOption(
+            icon: Icons.edit_note,
+            title: 'Editar Perfil y Vehículo',
+            subtitle: 'Nombre, teléfono y placa de matrícula',
+            onTap: () => context.pushAnimated(const EditDriverProfileScreen()),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileMetric(String value, String label) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.primaryDeep)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-      ],
+  Widget _buildProfileOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: AppColors.primaryDark, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFF94A3B8)),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildNavItem({required IconData icon, required String label, required int index}) {
     final isSelected = _selectedBottomNavIndex == index;
     return InkWell(
-      onTap: () {
-        setState(() => _selectedBottomNavIndex = index);
-      },
+      onTap: () => setState(() => _selectedBottomNavIndex = index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 22,
-            color: isSelected ? AppColors.primary : AppColors.textMuted,
-          ),
-          const SizedBox(height: 4),
+          Icon(icon, size: 22, color: isSelected ? AppColors.primary : AppColors.textMuted),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
               color: isSelected ? AppColors.primary : AppColors.textMuted,
             ),
           ),

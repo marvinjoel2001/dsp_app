@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect x="8" y="16" width="48" height="36" rx="8" fill="#059669" />
+  <path d="M22 16 L25 10 H39 L42 16 Z" fill="#047857" />
+  <circle cx="32" cy="34" r="11" fill="#FFFFFF" />
+  <circle cx="32" cy="34" r="6" fill="#059669" />
+  <!-- Checkmark Badge -->
+  <circle cx="48" cy="18" r="9" fill="#F59E0B" stroke="#FFFFFF" stroke-width="2" />
+  <path d="M44 18 L47 21 L52 15" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

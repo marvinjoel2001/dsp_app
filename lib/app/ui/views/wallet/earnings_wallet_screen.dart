@@ -1,8 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../controllers/auth_controller.dart';
+import '../../widgets/withdraw_funds_dialog.dart';
 
-class EarningsWalletScreen extends StatelessWidget {
-  const EarningsWalletScreen({super.key});
+class EarningsWalletScreen extends StatefulWidget {
+  final bool showAppBarLeading;
+  const EarningsWalletScreen({super.key, this.showAppBarLeading = true});
+
+  @override
+  State<EarningsWalletScreen> createState() => _EarningsWalletScreenState();
+}
+
+class _EarningsWalletScreenState extends State<EarningsWalletScreen> {
+  double _balance = 142.50;
+  final List<Map<String, dynamic>> _transactions = [
+    {
+      'title': 'Pago Orden #434567',
+      'subtitle': '062 Kuhn Plains → 922 Wilfredo Tunnel',
+      'amount': '+\$43.20',
+      'time': 'Hoy, 12:45 PM',
+      'isCredit': true,
+    },
+    {
+      'title': 'Pago Orden #434566',
+      'subtitle': '42 King Mission → 67 Hyatt Extension',
+      'amount': '+\$57.60',
+      'time': 'Hoy, 10:15 AM',
+      'isCredit': true,
+    },
+    {
+      'title': 'Retiro a Cuenta Bancaria',
+      'subtitle': 'Transferencia a Banco •••• 9941',
+      'amount': '-\$120.00',
+      'time': 'Ayer, 06:30 PM',
+      'isCredit': false,
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final driver = context.read<AuthController>().currentDriver;
+    if (driver != null && driver.walletBalance > 0) {
+      _balance = driver.walletBalance;
+    }
+  }
+
+  void _openWithdrawDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => WithdrawFundsDialog(
+        currentBalance: _balance,
+        onWithdrawConfirmed: (amount, method, accountInfo) {
+          setState(() {
+            _balance -= amount;
+            _transactions.insert(0, {
+              'title': method == 'BANK_TRANSFER' ? 'Retiro a Cuenta Bancaria' : 'Retiro vía QR Simple',
+              'subtitle': accountInfo,
+              'amount': '-\$${amount.toStringAsFixed(2)}',
+              'time': 'Hace un momento',
+              'isCredit': false,
+            });
+          });
+
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: AppColors.primary, size: 28),
+                  SizedBox(width: 10),
+                  Text('¡Retiro Procesado!'),
+                ],
+              ),
+              content: Text(
+                'Se ha enviado la solicitud de transferencia por \$${amount.toStringAsFixed(2)} USD hacia:\n\n📌 $accountInfo\n\nEl abono se verá reflejado en tu cuenta en un plazo máximo de 15 a 30 minutos.',
+                style: const TextStyle(fontSize: 13, height: 1.4),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                  child: const Text('Entendido'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +108,12 @@ class EarningsWalletScreen extends StatelessWidget {
             color: Color(0xFF0F172A),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF0F172A)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.showAppBarLeading
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF0F172A)),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -28,7 +121,7 @@ class EarningsWalletScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tarjeta de Saldo Disponible
+              // Tarjeta de Saldo Disponible con Gradiente
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -60,9 +153,9 @@ class EarningsWalletScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '\$142.50 USD',
-                      style: TextStyle(
+                    Text(
+                      '\$${_balance.toStringAsFixed(2)} USD',
+                      style: const TextStyle(
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -74,17 +167,11 @@ class EarningsWalletScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('✅ Solicitud de retiro enviada a tu cuenta bancaria.'),
-                                  backgroundColor: AppColors.primaryDark,
-                                ),
-                              );
-                            },
+                            onPressed: _balance >= 10.0 ? _openWithdrawDialog : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: AppColors.primaryDeep,
+                              disabledBackgroundColor: Colors.white.withOpacity(0.5),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -107,7 +194,7 @@ class EarningsWalletScreen extends StatelessWidget {
                             color: Colors.white.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.history, color: Colors.white, size: 20),
+                          child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
                         ),
                       ],
                     ),
@@ -116,37 +203,32 @@ class EarningsWalletScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 28),
-              const Text(
-                'Transacciones Recientes',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Transacciones Recientes',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  Text(
+                    '${_transactions.length} registros',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
 
-              _buildTransactionItem(
-                title: 'Pago Orden #434567',
-                subtitle: 'Kuhn Plains → Wilfredo Tunnel',
-                amount: '+\$43.20',
-                time: 'Hoy, 12:45 PM',
-                isCredit: true,
-              ),
-              _buildTransactionItem(
-                title: 'Pago Orden #434566',
-                subtitle: 'King Mission → Hyatt Extension',
-                amount: '+\$57.60',
-                time: 'Hoy, 10:15 AM',
-                isCredit: true,
-              ),
-              _buildTransactionItem(
-                title: 'Retiro a Cuenta Bancaria',
-                subtitle: 'Transferencia a Banco •••• 9941',
-                amount: '-\$120.00',
-                time: 'Ayer, 06:30 PM',
-                isCredit: false,
-              ),
+              ..._transactions.map((tx) => _buildTransactionItem(
+                    title: tx['title'] as String,
+                    subtitle: tx['subtitle'] as String,
+                    amount: tx['amount'] as String,
+                    time: tx['time'] as String,
+                    isCredit: tx['isCredit'] as bool,
+                  )),
             ],
           ),
         ),

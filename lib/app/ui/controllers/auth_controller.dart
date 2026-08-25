@@ -14,25 +14,42 @@ class AuthController extends ChangeNotifier {
   DriverEntity? get currentDriver => _currentDriver;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentDriver != null;
+  bool get isVerified => _currentDriver?.isVerified ?? false;
+  bool get isPendingVerification => _currentDriver?.isPendingVerification ?? false;
+  bool get isRejectedVerification => _currentDriver?.isRejectedVerification ?? false;
   String? get errorMessage => _errorMessage;
 
   AuthController({required this.driverRepository}) {
-    // Default logged-in mock driver matching user reference UI: Alex Courier (4.9 ★)
+    // Default logged-in driver: Alex Repartidor (Chiringuito Driver)
     _currentDriver = DriverEntity(
       id: 'c8716b1e-6240-4b2a-8c01-7faef83151cf',
-      fullName: 'Alex Courier',
+      fullName: 'Alex Repartidor',
       phone: '+59170000000',
       email: 'alex.courier@fooddrive.com',
       vehicleType: 'MOTORCYCLE',
       vehiclePlate: '1234-XYZ',
+      verificationStatus: 'verified', // Cambiable a 'pending' o 'rejected' para pruebas
       isOnline: true,
       isActive: true,
       rating: 4.9,
-      walletBalance: 128.50,
+      walletBalance: 142.50,
     );
     // Initialize WebSockets and start location background telemetry
     SocketService().initSocket();
     LocationBufferService.startTelemetrySync(_currentDriver!.id);
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  Future<void> refreshProfile() async {
+    if (_currentDriver == null) return;
+    try {
+      _currentDriver = await driverRepository.getDriverProfile(_currentDriver!.id);
+      notifyListeners();
+    } catch (_) {}
   }
 
   Future<bool> login(String email, String password) async {
@@ -48,7 +65,100 @@ class AuthController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> registerDriver({
+    required String fullName,
+    required String email,
+    required String phone,
+    required String password,
+    required String vehicleType,
+    required String vehiclePlate,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _currentDriver = await driverRepository.registerDriver({
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'vehicleType': vehicleType,
+        'vehiclePlate': vehiclePlate,
+      });
+
+      SocketService().initSocket();
+      LocationBufferService.startTelemetrySync(_currentDriver!.id);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    required String fullName,
+    required String phone,
+    required String vehicleType,
+    required String vehiclePlate,
+  }) async {
+    if (_currentDriver == null) return false;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _currentDriver = await driverRepository.updateProfile(_currentDriver!.id, {
+        'fullName': fullName,
+        'phone': phone,
+        'vehicleType': vehicleType,
+        'vehiclePlate': vehiclePlate,
+      });
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> uploadVerificationDocuments({
+    String? idCardUrl,
+    String? licenseUrl,
+    String? soatUrl,
+    String? vehiclePhotoUrl,
+  }) async {
+    if (_currentDriver == null) return false;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _currentDriver = await driverRepository.uploadDocuments(_currentDriver!.id, {
+        if (idCardUrl != null) 'idCardUrl': idCardUrl,
+        if (licenseUrl != null) 'licenseUrl': licenseUrl,
+        if (soatUrl != null) 'soatUrl': soatUrl,
+        if (vehiclePhotoUrl != null) 'vehiclePhotoUrl': vehiclePhotoUrl,
+      });
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -64,6 +174,12 @@ class AuthController extends ChangeNotifier {
       email: _currentDriver!.email,
       vehicleType: _currentDriver!.vehicleType,
       vehiclePlate: _currentDriver!.vehiclePlate,
+      avatarUrl: _currentDriver!.avatarUrl,
+      verificationStatus: _currentDriver!.verificationStatus,
+      idCardUrl: _currentDriver!.idCardUrl,
+      licenseUrl: _currentDriver!.licenseUrl,
+      soatUrl: _currentDriver!.soatUrl,
+      vehiclePhotoUrl: _currentDriver!.vehiclePhotoUrl,
       isOnline: isOnline,
       isActive: _currentDriver!.isActive,
       rating: _currentDriver!.rating,

@@ -5,6 +5,12 @@ class DriverEntity {
   final String email;
   final String vehicleType;
   final String vehiclePlate;
+  final String? avatarUrl;
+  final String verificationStatus; // 'pending' | 'verified' | 'rejected'
+  final String? idCardUrl;
+  final String? licenseUrl;
+  final String? soatUrl;
+  final String? vehiclePhotoUrl;
   final bool isOnline;
   final bool isActive;
   final double rating;
@@ -17,9 +23,19 @@ class DriverEntity {
     required this.email,
     required this.vehicleType,
     required this.vehiclePlate,
+    this.avatarUrl,
+    this.verificationStatus = 'verified',
+    this.idCardUrl,
+    this.licenseUrl,
+    this.soatUrl,
+    this.vehiclePhotoUrl,
     required this.isOnline,
     required this.isActive,
     required this.rating,
     required this.walletBalance,
   });
+
+  bool get isVerified => verificationStatus == 'verified';
+  bool get isPendingVerification => verificationStatus == 'pending';
+  bool get isRejectedVerification => verificationStatus == 'rejected';
 }
