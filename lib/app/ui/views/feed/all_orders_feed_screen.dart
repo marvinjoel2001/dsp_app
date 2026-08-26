@@ -273,6 +273,29 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               subdomains: const ['a', 'b', 'c', 'd'],
             ),
 
+            // Capa de Radio / Radar Verde Translúcido alrededor del Repartidor
+            CircleLayer(
+              circles: [
+                // Radio exterior translúcido
+                CircleMarker(
+                  point: driverLocation,
+                  radius: 85,
+                  useRadiusInMeter: true,
+                  color: const Color(0xFF10B981).withValues(alpha: 0.24),
+                  borderColor: const Color(0xFF10B981).withValues(alpha: 0.55),
+                  borderStrokeWidth: 1.8,
+                ),
+                // Halo interior suave
+                CircleMarker(
+                  point: driverLocation,
+                  radius: 40,
+                  useRadiusInMeter: true,
+                  color: const Color(0xFF34D399).withValues(alpha: 0.16),
+                  borderColor: Colors.transparent,
+                ),
+              ],
+            ),
+
             // Marcador SVG del Repartidor en Vivo (Píldora de Navegación)
             MarkerLayer(
               markers: [

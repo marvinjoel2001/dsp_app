@@ -159,9 +159,27 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                 ),
               ],
 
-              // Capa de Geocerca Perimetral (Radio de 150m alrededor del destino)
+              // Capa de Radios Circulares (Aura del Conductor y Geocerca Perimetral de Destino)
               CircleLayer(
                 circles: [
+                  // 1. Radio Verde Translúcido de Ubicación del Repartidor (Efecto Radar GPS)
+                  CircleMarker(
+                    point: driverPos,
+                    radius: 80,
+                    useRadiusInMeter: true,
+                    color: const Color(0xFF10B981).withValues(alpha: 0.24),
+                    borderColor: const Color(0xFF10B981).withValues(alpha: 0.55),
+                    borderStrokeWidth: 1.8,
+                  ),
+                  CircleMarker(
+                    point: driverPos,
+                    radius: 38,
+                    useRadiusInMeter: true,
+                    color: const Color(0xFF34D399).withValues(alpha: 0.16),
+                    borderColor: Colors.transparent,
+                  ),
+
+                  // 2. Capa de Geocerca Perimetral (Radio de 150m alrededor del destino)
                   CircleMarker(
                     point: isDelivering ? dropoffPoint : pickupPoint,
                     radius: 150,
