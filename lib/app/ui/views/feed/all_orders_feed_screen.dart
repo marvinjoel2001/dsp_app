@@ -296,17 +296,17 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               ],
             ),
 
-            // Marcador SVG del Repartidor en Vivo (Píldora de Navegación)
+            // Marcador del Repartidor en Vivo
             MarkerLayer(
               markers: [
                 Marker(
                   point: driverLocation,
-                  width: 44,
-                  height: 70,
+                  width: 50,
+                  height: 50,
                   child: AppSvgIcons.vehicleNavMarker(
                     vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
-                    width: 44,
-                    height: 70,
+                    width: 50,
+                    height: 50,
                   ),
                 ),
               ],

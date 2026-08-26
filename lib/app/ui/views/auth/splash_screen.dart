@@ -67,21 +67,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo SVG con brillo suave
+                // Logo Oficial Chiringuito Driver
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  width: 130,
+                  height: 130,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.25),
+                        color: AppColors.primary.withValues(alpha: 0.16),
                         blurRadius: 36,
                         spreadRadius: 4,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: AppSvgIcons.chiringuitoLogo(size: 84),
+                  child: Image.asset(
+                    'assets/images/driver_logo.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 24),
 

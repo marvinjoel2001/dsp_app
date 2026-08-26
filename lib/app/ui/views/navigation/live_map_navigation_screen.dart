@@ -210,17 +210,17 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                     child: AppSvgIcons.customerDropoffMarker(size: 48),
                   ),
 
-                  // Marcador SVG del Repartidor en Vivo (Píldora con Moto/Vehículo y Rumbo)
+                  // Marcador del Repartidor en Vivo (Moto/Vehículo con Rumbo)
                   Marker(
                     point: driverPos,
-                    width: 44,
-                    height: 70,
+                    width: 50,
+                    height: 50,
                     child: Transform.rotate(
                       angle: rideCtrl.driverHeading * (pi / 180.0),
                       child: AppSvgIcons.vehicleNavMarker(
                         vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
-                        width: 44,
-                        height: 70,
+                        width: 50,
+                        height: 50,
                       ),
                     ),
                   ),

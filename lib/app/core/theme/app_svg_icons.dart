@@ -163,14 +163,26 @@ class AppSvgIcons {
 ''';
 
   // Métodos Utilitarios con compatibilidad total para size, width y height
-  static Widget chiringuitoLogo({double size = 48}) {
-    return SvgPicture.string(chiringuitoLogoSvg, width: size, height: size);
+  static Widget chiringuitoLogo({double size = 48, BoxFit fit = BoxFit.contain}) {
+    return Image.asset(
+      'assets/images/driver_logo.png',
+      width: size,
+      height: size,
+      fit: fit,
+      errorBuilder: (_, __, ___) => SvgPicture.string(chiringuitoLogoSvg, width: size, height: size),
+    );
   }
 
   static Widget motorcycleCourier({double? size, double? width, double? height}) {
     final w = width ?? (size != null ? size * (200 / 320) : 34.0);
     final h = height ?? size ?? 54.0;
-    return SvgPicture.string(motorcycleSvg, width: w, height: h);
+    return Image.asset(
+      'assets/images/icon_driver.png',
+      width: w,
+      height: h,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => SvgPicture.string(motorcycleSvg, width: w, height: h),
+    );
   }
 
   static Widget bicycleCourier({double? size, double? width, double? height}) {
@@ -187,8 +199,8 @@ class AppSvgIcons {
 
   static Widget vehicleNavMarker({
     String vehicleType = 'MOTORCYCLE',
-    double width = 38,
-    double height = 60,
+    double width = 50,
+    double height = 50,
   }) {
     switch (vehicleType.toUpperCase()) {
       case 'BICYCLE':
@@ -197,7 +209,13 @@ class AppSvgIcons {
         return SvgPicture.string(carSvg, width: width, height: height);
       case 'MOTORCYCLE':
       default:
-        return SvgPicture.string(motorcycleSvg, width: width, height: height);
+        return Image.asset(
+          'assets/images/icon_driver.png',
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => SvgPicture.string(motorcycleSvg, width: width, height: height),
+        );
     }
   }
 
