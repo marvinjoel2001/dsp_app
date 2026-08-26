@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -232,42 +233,43 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
-
-                // Botón de Acceso Rápido Demo 1-Click
-                InkWell(
-                  onTap: () async {
-                    await authCtrl.login('+591 70001234', '123456');
-                    if (mounted) {
-                      context.pushReplacementAnimated(const AllOrdersFeedScreen());
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.bolt, color: AppColors.primaryDark, size: 18),
-                        SizedBox(width: 6),
-                        Text(
-                          '⚡ 1-Click Demo (+591 70001234 • Alex)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primaryDark,
+                if (kDebugMode) ...[
+                  const SizedBox(height: 16),
+                  // Botón de Acceso Rápido Demo 1-Click (Solo para Pruebas / QA / Debug)
+                  InkWell(
+                    onTap: () async {
+                      await authCtrl.login('+591 70001234', '123456');
+                      if (mounted) {
+                        context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.bolt, color: AppColors.primaryDark, size: 18),
+                          SizedBox(width: 6),
+                          Text(
+                            '⚡ 1-Click Demo QA (+591 70001234 • Alex)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryDark,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

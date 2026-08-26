@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -788,20 +789,21 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogCtx);
-              rideCtrl.snapDriverToDestination();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('⚡ Posición simulada en el destino (Modo Pruebas)'),
-                  backgroundColor: AppColors.primaryDark,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text('Simular Llegada (Test)', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
+          if (kDebugMode)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                rideCtrl.snapDriverToDestination();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⚡ Posición simulada en el destino (Modo Pruebas/QA)'),
+                    backgroundColor: AppColors.primaryDark,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const Text('Simular Llegada (Solo QA/Dev)', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx),
             style: ElevatedButton.styleFrom(
