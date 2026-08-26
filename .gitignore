@@ -70,10 +70,9 @@ migrate_working_dir/
 
 # Environment & secrets
 .env
-.env.local
+.env.*
 dart_defines.json
-env/dart_define.local.json
-env/*.local.json
+env/*.json
 !env/dart_define.example.json
 
 # FVM Version Cache
