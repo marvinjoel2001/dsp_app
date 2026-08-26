@@ -273,24 +273,24 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               subdomains: const ['a', 'b', 'c', 'd'],
             ),
 
-            // Capa de Radio / Radar Verde Translúcido alrededor del Repartidor
+            // Capa de Radio / Radar Verde Translúcido alrededor del Repartidor (Aura Amplia)
             CircleLayer(
               circles: [
-                // Radio exterior translúcido
+                // Radio exterior translúcido amplio (Abarca completamente la moto)
                 CircleMarker(
                   point: driverLocation,
-                  radius: 85,
-                  useRadiusInMeter: true,
-                  color: const Color(0xFF10B981).withValues(alpha: 0.24),
-                  borderColor: const Color(0xFF10B981).withValues(alpha: 0.55),
-                  borderStrokeWidth: 1.8,
+                  radius: 46,
+                  useRadiusInMeter: false,
+                  color: const Color(0xFF10B981).withValues(alpha: 0.26),
+                  borderColor: const Color(0xFF10B981).withValues(alpha: 0.60),
+                  borderStrokeWidth: 2.0,
                 ),
                 // Halo interior suave
                 CircleMarker(
                   point: driverLocation,
-                  radius: 40,
-                  useRadiusInMeter: true,
-                  color: const Color(0xFF34D399).withValues(alpha: 0.16),
+                  radius: 28,
+                  useRadiusInMeter: false,
+                  color: const Color(0xFF34D399).withValues(alpha: 0.18),
                   borderColor: Colors.transparent,
                 ),
               ],

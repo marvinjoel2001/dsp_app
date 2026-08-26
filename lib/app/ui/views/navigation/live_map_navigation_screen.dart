@@ -162,20 +162,20 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
               // Capa de Radios Circulares (Aura del Conductor y Geocerca Perimetral de Destino)
               CircleLayer(
                 circles: [
-                  // 1. Radio Verde Translúcido de Ubicación del Repartidor (Efecto Radar GPS)
+                  // 1. Radio Verde Translúcido de Ubicación del Repartidor (Efecto Radar GPS Amplio)
                   CircleMarker(
                     point: driverPos,
-                    radius: 80,
-                    useRadiusInMeter: true,
-                    color: const Color(0xFF10B981).withValues(alpha: 0.24),
-                    borderColor: const Color(0xFF10B981).withValues(alpha: 0.55),
-                    borderStrokeWidth: 1.8,
+                    radius: 46,
+                    useRadiusInMeter: false,
+                    color: const Color(0xFF10B981).withValues(alpha: 0.26),
+                    borderColor: const Color(0xFF10B981).withValues(alpha: 0.60),
+                    borderStrokeWidth: 2.0,
                   ),
                   CircleMarker(
                     point: driverPos,
-                    radius: 38,
-                    useRadiusInMeter: true,
-                    color: const Color(0xFF34D399).withValues(alpha: 0.16),
+                    radius: 28,
+                    useRadiusInMeter: false,
+                    color: const Color(0xFF34D399).withValues(alpha: 0.18),
                     borderColor: Colors.transparent,
                   ),
 
