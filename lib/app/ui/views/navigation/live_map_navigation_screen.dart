@@ -159,6 +159,20 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                 ),
               ],
 
+              // Capa de Geocerca Perimetral (Radio de 150m alrededor del destino)
+              CircleLayer(
+                circles: [
+                  CircleMarker(
+                    point: isDelivering ? dropoffPoint : pickupPoint,
+                    radius: 150,
+                    useRadiusInMeter: true,
+                    color: (isDelivering ? AppColors.primary : AppColors.secondary).withValues(alpha: 0.14),
+                    borderColor: isDelivering ? AppColors.primary : AppColors.secondary,
+                    borderStrokeWidth: 2.0,
+                  ),
+                ],
+              ),
+
               // Marcadores Vectoriales SVG Reales
               MarkerLayer(
                 markers: [
@@ -197,91 +211,24 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
             ],
           ),
 
-          // 2. Encabezado de Navegación Flotante
+          // 2. Encabezado de Navegación Flotante con TurnGuidanceCard Integrado (Cero Solapamientos)
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Minimizar / Volver al Inicio
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
-                        ],
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF0F172A)),
-                    ),
-                  ),
-
+                  // Fila Superior de Controles
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Botón Toggle Voz TTS
+                      // Minimizar / Volver al Inicio
                       InkWell(
-                        onTap: () {
-                          setState(() {
-                            _isVoiceEnabled = !_isVoiceEnabled;
-                            _audioService.isVoiceGuidanceEnabled = _isVoiceEnabled;
-                          });
-                          if (_isVoiceEnabled) {
-                            _audioService.speakInstruction(rideCtrl.turnGuidance);
-                          } else {
-                            _audioService.stopSpeech();
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_isVoiceEnabled ? '🔊 Instrucciones por voz activadas' : '🔇 Voz silenciada'),
-                              duration: const Duration(seconds: 1),
-                              backgroundColor: AppColors.primaryDark,
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.pop(context),
                         borderRadius: BorderRadius.circular(14),
                         child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: _isVoiceEnabled ? AppColors.primaryLight : Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: _isVoiceEnabled ? AppColors.primary : const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
-                            ],
-                          ),
-                          child: Icon(
-                            _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
-                            size: 20,
-                            color: _isVoiceEnabled ? AppColors.primaryDark : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Botón Recalcular Ruta
-                      InkWell(
-                        onTap: () async {
-                          await rideCtrl.recalculateRoute();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('🔄 Recalculando ruta en tiempo real por calles...'),
-                                duration: Duration(seconds: 1),
-                                backgroundColor: AppColors.primaryDark,
-                              ),
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
@@ -290,120 +237,189 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                               BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
                             ],
                           ),
-                          child: const Icon(Icons.sync, size: 20, color: Color(0xFF0F172A)),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: Color(0xFF0F172A)),
                         ),
                       ),
-                      const SizedBox(width: 8),
 
-                      // Botón 2D / 3D
-                      InkWell(
-                        onTap: () {
-                          rideCtrl.toggle3D();
-                          _mapController.move(driverPos, rideCtrl.is3DView ? 16.8 : 15.5);
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: rideCtrl.is3DView ? AppColors.primary : Colors.white,
+                      // Botones Superiores (Voz, 3D, Ayuda)
+                      Row(
+                        children: [
+                          // Botón Toggle Voz TTS
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isVoiceEnabled = !_isVoiceEnabled;
+                                _audioService.isVoiceGuidanceEnabled = _isVoiceEnabled;
+                              });
+                              if (_isVoiceEnabled) {
+                                _audioService.speakInstruction(rideCtrl.turnGuidance);
+                              } else {
+                                _audioService.stopSpeech();
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(_isVoiceEnabled ? '🔊 Instrucciones por voz activadas' : '🔇 Voz silenciada'),
+                                  duration: const Duration(seconds: 1),
+                                  backgroundColor: AppColors.primaryDark,
+                                ),
+                              );
+                            },
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: rideCtrl.is3DView ? AppColors.primary : const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
-                            ],
-                          ),
-                          child: Text(
-                            rideCtrl.is3DView ? '3D' : '2D',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: rideCtrl.is3DView ? Colors.white : const Color(0xFF0F172A),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _isVoiceEnabled ? AppColors.primaryLight : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: _isVoiceEnabled ? AppColors.primary : const Color(0xFFE2E8F0)),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
+                                ],
+                              ),
+                              child: Icon(
+                                _isVoiceEnabled ? Icons.volume_up : Icons.volume_off,
+                                size: 18,
+                                color: _isVoiceEnabled ? AppColors.primaryDark : const Color(0xFF64748B),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
-                      // Botón Recentrar Conductor
-                      InkWell(
-                        onTap: () => _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _autoFollowDriver ? AppColors.primaryLight : Colors.white,
+                          // Botón 2D / 3D
+                          InkWell(
+                            onTap: () {
+                              rideCtrl.toggle3D();
+                              _mapController.move(driverPos, rideCtrl.is3DView ? 16.8 : 15.5);
+                            },
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: _autoFollowDriver ? AppColors.primary : const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.my_location,
-                                size: 16,
-                                color: _autoFollowDriver ? AppColors.primaryDark : AppColors.textPrimary,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: rideCtrl.is3DView ? AppColors.primary : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: rideCtrl.is3DView ? AppColors.primary : const Color(0xFFE2E8F0)),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'GPS',
+                              child: Text(
+                                rideCtrl.is3DView ? '3D' : '2D',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: _autoFollowDriver ? AppColors.primaryDark : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w900,
+                                  color: rideCtrl.is3DView ? Colors.white : const Color(0xFF0F172A),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
-                      // Botón Ayuda / Cancelación
-                      InkWell(
-                        onTap: () => _showHelpMenu(context),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
+                          // Botón Ayuda / Cancelación
+                          InkWell(
+                            onTap: () => _showHelpMenu(context),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
-                            ],
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.help_outline, size: 16, color: AppColors.textPrimary),
-                              SizedBox(width: 4),
-                              Text(
-                                'Ayuda',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
+                                ],
                               ),
-                            ],
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.help_outline, size: 16, color: AppColors.textPrimary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Ayuda',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 3. HUD Superior Turn-By-Turn Card
+                  TurnGuidanceCard(
+                    instruction: rideCtrl.turnGuidance,
+                    modifier: currentStep?.modifier,
+                    distanceMeters: currentStep?.distanceMeters ?? (rideCtrl.routeDistanceKm * 1000),
+                    durationMinutes: rideCtrl.routeDurationMin,
+                    speedKmh: rideCtrl.driverSpeedKmh,
                   ),
                 ],
               ),
             ),
           ),
 
-          // 3. HUD Superior de Navegación Turn-By-Turn (Modo Giro a Giro Profesional)
+          // 3. Botones Flotantes Laterales del Mapa (Recentrar GPS y Recalcular Ruta)
           Positioned(
-            top: 72,
-            left: 16,
             right: 16,
-            child: TurnGuidanceCard(
-              instruction: rideCtrl.turnGuidance,
-              modifier: currentStep?.modifier,
-              distanceMeters: currentStep?.distanceMeters ?? (rideCtrl.routeDistanceKm * 1000),
-              durationMinutes: rideCtrl.routeDurationMin,
-              speedKmh: rideCtrl.driverSpeedKmh,
+            bottom: 270,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Botón Recalcular Ruta
+                InkWell(
+                  onTap: () async {
+                    await rideCtrl.recalculateRoute();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🔄 Recalculando ruta en tiempo real por calles...'),
+                          duration: Duration(seconds: 1),
+                          backgroundColor: AppColors.primaryDark,
+                        ),
+                      );
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: const Icon(Icons.sync, size: 20, color: Color(0xFF0F172A)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Botón Recentrar GPS
+                InkWell(
+                  onTap: () => _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _autoFollowDriver ? AppColors.primary : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _autoFollowDriver ? AppColors.primary : const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.my_location,
+                      size: 20,
+                      color: _autoFollowDriver ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -562,7 +578,44 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  // Insignia de Validación de Proximidad / Geocerca
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: rideCtrl.isWithinGeofence
+                          ? const Color(0xFFECFDF5)
+                          : const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: rideCtrl.isWithinGeofence
+                            ? const Color(0xFFA7F3D0)
+                            : const Color(0xFFFDE68A),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          rideCtrl.isWithinGeofence ? Icons.check_circle : Icons.location_searching,
+                          size: 16,
+                          color: rideCtrl.isWithinGeofence ? const Color(0xFF059669) : const Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rideCtrl.isWithinGeofence
+                                ? 'Ubicación Validada (${rideCtrl.distanceToCurrentTargetMeters.round()} m) • Dentro del radio ✅'
+                                : 'A ${rideCtrl.distanceToCurrentTargetMeters >= 1000 ? (rideCtrl.distanceToCurrentTargetMeters / 1000).toStringAsFixed(1) + " km" : rideCtrl.distanceToCurrentTargetMeters.round().toString() + " m"} del destino (Radio: < 150m)',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              color: rideCtrl.isWithinGeofence ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   // Botón de Acción Principal (CTA Masivo para Uso con una Sola Mano)
                   SizedBox(
@@ -570,6 +623,17 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                     height: 54,
                     child: ElevatedButton(
                       onPressed: () {
+                        // Validación Estricta de Proximidad Geoespacial
+                        if (!rideCtrl.isWithinGeofence) {
+                          _showOutOfRangeDialog(
+                            context,
+                            rideCtrl,
+                            rideCtrl.distanceToCurrentTargetMeters,
+                            isDelivering,
+                          );
+                          return;
+                        }
+
                         if (rideCtrl.currentStage == RideStage.inTransit) {
                           showModalBottomSheet(
                             context: context,
@@ -593,11 +657,16 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                                         children: [
                                           Icon(Icons.check_circle, color: AppColors.primary, size: 28),
                                           SizedBox(width: 10),
-                                          Text('¡Entrega Completada!'),
+                                          Expanded(
+                                            child: Text(
+                                              '¡Entrega Completada!',
+                                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       content: Text(
-                                        '🎉 ¡Excelente trabajo, ${authCtrl.currentDriver?.fullName ?? "Alex"}!\n\nHas ganado +\$${payout.toStringAsFixed(2)} USD por esta entrega. El comprobante POD fue respaldado en Cloudinary y tu saldo ha sido acreditado en Chiringuito.',
+                                        '🎉 ¡Excelente trabajo, ${authCtrl.currentDriver?.fullName ?? "Alex"}!\n\nHas ganado +Bs. ${payout.toStringAsFixed(2)} por esta entrega. El comprobante POD fue respaldado en Cloudinary y tu saldo ha sido acreditado en Chiringuito.',
                                         style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF334155)),
                                       ),
                                       actions: [
@@ -621,7 +690,9 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isDelivering ? AppColors.primary : AppColors.secondary,
+                        backgroundColor: rideCtrl.isWithinGeofence
+                            ? (isDelivering ? AppColors.primary : AppColors.secondary)
+                            : const Color(0xFF94A3B8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
@@ -639,6 +710,87 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOutOfRangeDialog(
+    BuildContext context,
+    ActiveRideController rideCtrl,
+    double distanceMeters,
+    bool isDelivering,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Fuera del Radio de Ubicación',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Te encuentras a ${distanceMeters >= 1000 ? (distanceMeters / 1000).toStringAsFixed(1) + " km" : distanceMeters.round().toString() + " metros"} de ${isDelivering ? "la dirección de entrega del cliente" : "el comercio de recogida"}.\n\nPor políticas de seguridad y validación de entrega, debes estar a menos de 150 metros del punto para confirmar este paso.',
+              style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFF64748B)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sigue la ruta en el mapa hasta acercarte al perímetro.',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              rideCtrl.snapDriverToDestination();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚡ Posición simulada en el destino (Modo Pruebas)'),
+                  backgroundColor: AppColors.primaryDark,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('Simular Llegada (Test)', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Continuar Conduciendo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
           ),
         ],
       ),

@@ -170,7 +170,7 @@ class _IncomingOrderModalState extends State<IncomingOrderModal> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '+\$${payout.toStringAsFixed(2)} USD',
+                    '+Bs. ${payout.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,

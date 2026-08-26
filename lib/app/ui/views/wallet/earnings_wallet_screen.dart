@@ -78,7 +78,7 @@ class _EarningsWalletScreenState extends State<EarningsWalletScreen> {
                 ],
               ),
               content: Text(
-                'Se ha enviado la solicitud de transferencia por \$${amount.toStringAsFixed(2)} USD hacia:\n\n📌 $accountInfo\n\nEl abono se verá reflejado en tu cuenta en un plazo máximo de 15 a 30 minutos.',
+                'Se ha enviado la solicitud de transferencia por Bs. ${amount.toStringAsFixed(2)} hacia:\n\n📌 $accountInfo\n\nEl abono se verá reflejado en tu cuenta en un plazo máximo de 15 a 30 minutos.',
                 style: const TextStyle(fontSize: 13, height: 1.4),
               ),
               actions: [
@@ -134,7 +134,7 @@ class _EarningsWalletScreenState extends State<EarningsWalletScreen> {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -154,7 +154,7 @@ class _EarningsWalletScreenState extends State<EarningsWalletScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '\$${_balance.toStringAsFixed(2)} USD',
+                      'Bs. ${_balance.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 34,
                         fontWeight: FontWeight.w900,

@@ -16,13 +16,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'alex.courier@fooddrive.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _phoneOrEmailController = TextEditingController(text: '+591 70001234');
+  final _passwordController = TextEditingController(text: '123456');
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneOrEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Inicia sesión para recibir ofertas de despacho y navegar hacia tus entregas en tiempo real.',
+                  'Ingresa con tu número de teléfono móvil para recibir ofertas de despacho y navegar hacia tus entregas.',
                   style: TextStyle(
                     fontSize: 13,
                     color: Color(0xFF475569),
@@ -88,9 +88,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Campo de Correo Electrónico
+                // Campo de Teléfono o Correo
                 const Text(
-                  'Correo Electrónico *',
+                  'Teléfono Celular o Correo *',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -99,29 +99,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: _phoneOrEmailController,
+                  keyboardType: TextInputType.text,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                   decoration: const InputDecoration(
-                    hintText: 'nombre@correo.com',
-                    prefixIcon: Icon(Icons.email_outlined, size: 20, color: Color(0xFF94A3B8)),
+                    hintText: '+591 70001234 o driver@dsp.com',
+                    prefixIcon: Icon(Icons.phone_android_outlined, size: 20, color: Color(0xFF94A3B8)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Por favor ingresa tu correo electrónico';
-                    }
-                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                    if (!emailRegex.hasMatch(value.trim())) {
-                      return 'Ingresa un formato de correo válido (ej. alex@chiringuito.com)';
+                      return 'Por favor ingresa tu número de teléfono o correo';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Campo de Contraseña
+                // Campo de Contraseña o PIN
                 const Text(
-                  'Contraseña *',
+                  'Contraseña o PIN (Opcional en Demo) *',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -134,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    hintText: '••••••••',
+                    hintText: '123456',
                     prefixIcon: const Icon(Icons.lock_outline, size: 20, color: Color(0xFF94A3B8)),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -145,15 +141,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa tu contraseña';
-                    }
-                    if (value.length < 6) {
-                      return 'La contraseña debe tener al menos 6 caracteres';
-                    }
-                    return null;
-                  },
                 ),
 
                 const SizedBox(height: 32),
@@ -168,8 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         : () async {
                             if (_formKey.currentState?.validate() ?? false) {
                               final success = await authCtrl.login(
-                                _emailController.text.trim(),
-                                _passwordController.text,
+                                _phoneOrEmailController.text.trim(),
+                                _passwordController.text.isEmpty ? '123456' : _passwordController.text,
                               );
                               if (success && mounted) {
                                 context.pushReplacementAnimated(const AllOrdersFeedScreen());
@@ -250,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Botón de Acceso Rápido Demo 1-Click
                 InkWell(
                   onTap: () async {
-                    await authCtrl.login('alex.courier@fooddrive.com', 'password123');
+                    await authCtrl.login('+591 70001234', '123456');
                     if (mounted) {
                       context.pushReplacementAnimated(const AllOrdersFeedScreen());
                     }
@@ -262,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -270,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Icon(Icons.bolt, color: AppColors.primaryDark, size: 18),
                         SizedBox(width: 6),
                         Text(
-                          '1-Click Acceso Rápido Demo (Alex Repartidor 4.9 ★)',
+                          '⚡ 1-Click Demo (+591 70001234 • Alex)',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,

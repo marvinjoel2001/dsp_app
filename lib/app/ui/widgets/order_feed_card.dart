@@ -61,7 +61,7 @@ class _OrderFeedCardState extends State<OrderFeedCard> {
                 ),
               ),
               Text(
-                '+\$${payout.toStringAsFixed(2)} USD',
+                '+Bs. ${payout.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,

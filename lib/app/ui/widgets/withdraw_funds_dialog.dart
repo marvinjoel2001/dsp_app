@@ -110,7 +110,7 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
 
               // 1. Monto a Retirar con Validación
               const Text(
-                'Monto a Retirar (USD) *',
+                'Monto a Retirar (Bs.) *',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 6),
@@ -120,7 +120,10 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 decoration: InputDecoration(
                   hintText: 'Ej. 50.00',
-                  prefixIcon: const Icon(Icons.attach_money, size: 20, color: Color(0xFF94A3B8)),
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Text('Bs.', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                  ),
                   suffixIcon: TextButton(
                     onPressed: () {
                       _amountController.text = widget.currentBalance.toStringAsFixed(2);
@@ -137,10 +140,10 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                     return 'Ingresa un monto numérico válido';
                   }
                   if (amount < 10.0) {
-                    return 'El monto mínimo de retiro es \$10.00 USD';
+                    return 'El monto mínimo de retiro es Bs. 10.00';
                   }
                   if (amount > widget.currentBalance) {
-                    return 'El monto supera tu saldo disponible (\$${widget.currentBalance.toStringAsFixed(2)})';
+                    return 'El monto supera tu saldo disponible (Bs. ${widget.currentBalance.toStringAsFixed(2)})';
                   }
                   return null;
                 },

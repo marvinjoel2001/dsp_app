@@ -41,7 +41,7 @@ class WalletInfoModel {
   factory WalletInfoModel.fromJson(Map<String, dynamic> json) {
     return WalletInfoModel(
       balance: (json['balance'] != null) ? double.parse(json['balance'].toString()) : 0.0,
-      currency: json['currency'] ?? 'USD',
+      currency: json['currency'] ?? 'BOB',
       transactions: (json['transactions'] as List<dynamic>? ?? [])
           .map((item) => WalletTransactionModel.fromJson(item))
           .toList(),

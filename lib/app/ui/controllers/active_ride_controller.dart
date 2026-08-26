@@ -6,6 +6,7 @@ import '../../domain/repositories/order_repository.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../core/services/mapbox_routing_service.dart';
 import '../../core/services/app_audio_service.dart';
+import '../../core/network/socket_service.dart';
 
 enum RideStage {
   assigned, // Etapa 1: En ruta al comercio
@@ -18,6 +19,7 @@ class ActiveRideController extends ChangeNotifier {
   final OrderRepository orderRepository;
   final MapboxRoutingService _routingService = MapboxRoutingService();
   final AppAudioService _audioService = AppAudioService();
+  final SocketService _socketService = SocketService();
 
   OrderEntity? _activeOrder;
   RideStage _currentStage = RideStage.assigned;
@@ -61,6 +63,37 @@ class ActiveRideController extends ChangeNotifier {
   List<RouteStep> get routeSteps => _routeSteps;
   int get currentStepIndex => _currentStepIndex;
 
+  static const double geofenceRadiusMeters = 150.0;
+
+  /// Distancia en metros hacia el punto de parada actual (comercio o cliente)
+  double get distanceToCurrentTargetMeters {
+    if (_activeOrder == null) return 0.0;
+    final target = (_currentStage == RideStage.assigned || _currentStage == RideStage.arrivedAtPickup)
+        ? LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng)
+        : LatLng(_activeOrder!.dropoffLat, _activeOrder!.dropoffLng);
+    return const Distance().as(LengthUnit.Meter, _driverLocation, target);
+  }
+
+  /// Valida si el conductor está dentro del radio permitido para marcar llegada
+  bool get isWithinGeofence {
+    if (_activeOrder == null) return true;
+    if (_currentStage == RideStage.arrivedAtPickup) return true; // Ya en el comercio
+    return distanceToCurrentTargetMeters <= geofenceRadiusMeters;
+  }
+
+  /// Permite forzar el acercamiento instantáneo en modo de pruebas / simulación
+  void snapDriverToDestination() {
+    if (_activeOrder == null) return;
+    final target = (_currentStage == RideStage.assigned || _currentStage == RideStage.arrivedAtPickup)
+        ? LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng)
+        : LatLng(_activeOrder!.dropoffLat, _activeOrder!.dropoffLng);
+    _driverLocation = target;
+    _simulationPolylineIndex = max(0, _fullRoutePolyline.length - 1);
+    _routeDistanceKm = 0.05;
+    _routeDurationMin = 1;
+    notifyListeners();
+  }
+
   /// Ruta visible que se va consumiendo por detrás a medida que avanza el conductor
   List<LatLng> get routePolyline {
     if (_fullRoutePolyline.isEmpty) return [];
@@ -72,6 +105,8 @@ class ActiveRideController extends ChangeNotifier {
   }
 
   ActiveRideController({required this.orderRepository}) {
+    _socketService.initSocket();
+
     // Orden de demostración inicial
     _activeOrder = OrderEntity(
       id: '434567',
@@ -189,6 +224,16 @@ class ActiveRideController extends ChangeNotifier {
         _driverLocation = currentPoint;
         _driverHeading = _calculateBearing(prevPoint, currentPoint);
         _driverSpeedKmh = 28.0 + Random().nextInt(14); // 28 - 42 km/h
+
+        // Emitir telemetría GPS en tiempo real por WebSocket hacia el Backend y Panel Admin
+        _socketService.emitLocationPing(
+          driverId: 'c8716b1e-6240-4b2a-8c01-7faef83151cf',
+          lat: currentPoint.latitude,
+          lng: currentPoint.longitude,
+          heading: _driverHeading,
+          speed: _driverSpeedKmh,
+          orderId: _activeOrder?.id,
+        );
 
         // Actualizar paso de giro si nos acercamos a un waypoint y hablarlo por voz
         if (_routeSteps.isNotEmpty && _currentStepIndex < _routeSteps.length - 1) {

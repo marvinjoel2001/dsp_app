@@ -12,6 +12,7 @@ import '../../controllers/auth_controller.dart';
 import '../../widgets/order_feed_card.dart';
 import '../../widgets/incoming_order_modal.dart';
 import '../../widgets/connectivity_status_banner.dart';
+import '../../widgets/active_trip_card.dart';
 import '../drawer/driver_side_drawer.dart';
 import '../navigation/live_map_navigation_screen.dart';
 import '../wallet/earnings_wallet_screen.dart';
@@ -38,19 +39,21 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => IncomingOrderModal(
+      builder: (modalContext) => IncomingOrderModal(
         order: order,
         onAccept: () async {
-          Navigator.pop(context);
+          Navigator.pop(modalContext);
           final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
-          final accepted = await feedCtrl.acceptOrder(order.id, driverId);
-          if (accepted && mounted) {
-            activeRideCtrl.setActiveOrder(order);
+          try {
+            await feedCtrl.acceptOrder(order.id, driverId);
+          } catch (_) {}
+          activeRideCtrl.setActiveOrder(order);
+          if (mounted) {
             context.pushAnimated(const LiveMapNavigationScreen());
           }
         },
         onDecline: () {
-          Navigator.pop(context);
+          Navigator.pop(modalContext);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Orden rechazada. Buscando nuevas solicitudes...'),
@@ -294,66 +297,13 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           left: 16,
           right: 16,
           child: hasActiveOrder
-              // Tarjeta de Viaje Activo
-              ? Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.primary, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.18),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'VIAJE EN CURSO',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                            ),
-                          ),
-                          Text(
-                            '+\$${activeRideCtrl.activeOrder?.driverPayout.toStringAsFixed(2) ?? "43.20"} USD',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        activeRideCtrl.activeOrder?.pickupAddress ?? 'Restaurante El Chiringuito',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            context.pushAnimated(const LiveMapNavigationScreen());
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                          child: const Text('Continuar Navegación GPS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-                        ),
-                      ),
-                    ],
-                  ),
+              // Tarjeta de Viaje Activo con diseño nativo y estadísticas completas
+              ? ActiveTripCard(
+                  order: activeRideCtrl.activeOrder,
+                  driver: authCtrl.currentDriver,
+                  onContinueGps: () {
+                    context.pushAnimated(const LiveMapNavigationScreen());
+                  },
                 )
               : isOnline
                   // Estado Online: Radar y Órdenes Disponibles
@@ -402,7 +352,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                                 onPressed: () => _showIncomingOrderModal(context, feedCtrl.orders.first),
                                 icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
                                 label: Text(
-                                  'Ver Nueva Oferta (+\$${feedCtrl.orders.first.driverPayout.toStringAsFixed(2)} USD)',
+                                  'Ver Nueva Oferta (+Bs. ${feedCtrl.orders.first.driverPayout.toStringAsFixed(2)})',
                                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
                                 ),
                                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),

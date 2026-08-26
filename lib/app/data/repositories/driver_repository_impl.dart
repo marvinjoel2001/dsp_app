@@ -199,7 +199,7 @@ class DriverRepositoryImpl implements DriverRepository {
     } catch (_) {
       return WalletInfoModel(
         balance: 142.50,
-        currency: 'USD',
+        currency: 'BOB',
         transactions: [
           WalletTransactionModel(
             id: 'tx-1',
