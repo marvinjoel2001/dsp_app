@@ -378,10 +378,10 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
             ),
           ),
 
-          // 3. Botones Flotantes Laterales del Mapa (Recentrar GPS y Recalcular Ruta)
+          // 3. Botones Flotantes Laterales del Mapa (Recentrar GPS y Recalcular Ruta - Zona Superior Libre de Solapamientos)
           Positioned(
             right: 16,
-            bottom: 270,
+            top: 175,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -636,10 +636,12 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                   ),
                   const SizedBox(height: 12),
 
-                  // Botón de Acción Principal (CTA Masivo para Uso con una Sola Mano)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
+                  // Botón de Acción Principal Adaptable (Cero recorte de texto en 1, 2 o 3 líneas)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: 56,
+                      minWidth: double.infinity,
+                    ),
                     child: ElevatedButton(
                       onPressed: () {
                         // Validación Estricta de Proximidad Geoespacial
@@ -713,16 +715,34 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                             ? (isDelivering ? AppColors.primary : AppColors.secondary)
                             : const Color(0xFF94A3B8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         elevation: 0,
                       ),
-                      child: Text(
-                        _getActionLabel(rideCtrl.currentStage),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          color: Colors.white,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _getActionIcon(rideCtrl.currentStage),
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              _getActionLabel(rideCtrl.currentStage),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
+                                height: 1.25,
+                                color: Colors.white,
+                              ),
+                              maxLines: 3,
+                              softWrap: true,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -817,14 +837,27 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
     );
   }
 
+  IconData _getActionIcon(RideStage stage) {
+    switch (stage) {
+      case RideStage.assigned:
+        return Icons.storefront_outlined;
+      case RideStage.arrivedAtPickup:
+        return Icons.inventory_2_outlined;
+      case RideStage.inTransit:
+        return Icons.verified_outlined;
+      case RideStage.delivered:
+        return Icons.check_circle_outline;
+    }
+  }
+
   String _getActionLabel(RideStage stage) {
     switch (stage) {
       case RideStage.assigned:
-        return '1. LLEGADA AL COMERCIO (RECOGIDA)';
+        return '1. CONFIRMAR LLEGADA AL COMERCIO';
       case RideStage.arrivedAtPickup:
-        return '2. CONFIRMAR RECOGIDA DE PEDIDO';
+        return '2. CONFIRMAR RECOGIDA (INICIAR RUTA)';
       case RideStage.inTransit:
-        return '3. LLEGADA AL DESTINO (ENTREGAR)';
+        return '3. CONFIRMAR LLEGADA Y ENTREGA';
       case RideStage.delivered:
         return 'ORDEN COMPLETADA';
     }

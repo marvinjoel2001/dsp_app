@@ -314,10 +314,12 @@ class ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Fila 6: Botón de Acción Principal Verde
-          SizedBox(
-            width: double.infinity,
-            height: 52,
+          // Fila 6: Botón de Acción Principal Verde Adaptable
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: 52,
+              minWidth: double.infinity,
+            ),
             child: ElevatedButton(
               onPressed: onContinueGps,
               style: ElevatedButton.styleFrom(
@@ -327,16 +329,28 @@ class ActiveTripCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              child: const Text(
-                'Continuar Navegación GPS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.2,
-                ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.navigation_outlined, size: 20, color: Colors.white),
+                  SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Continuar Navegación GPS',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 2,
+                      softWrap: true,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
