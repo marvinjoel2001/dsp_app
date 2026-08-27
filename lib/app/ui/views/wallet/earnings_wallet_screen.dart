@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/network/api_client.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/withdraw_funds_dialog.dart';
 
@@ -55,12 +56,28 @@ class _EarningsWalletScreenState extends State<EarningsWalletScreen> {
       builder: (_) => WithdrawFundsDialog(
         currentBalance: _balance,
         onWithdrawConfirmed: (amount, method, accountInfo) {
+          final driver = context.read<AuthController>().currentDriver;
+          if (driver != null) {
+            try {
+              ApiClient().dio.post(
+                '/v1/settlements/withdrawals/request',
+                data: {
+                  'driverId': driver.id,
+                  'amount': amount,
+                  'method': method,
+                  'accountHolder': driver.fullName,
+                  'accountNumberOrPhone': accountInfo,
+                },
+              );
+            } catch (_) {}
+          }
+
           setState(() {
             _balance -= amount;
             _transactions.insert(0, {
               'title': method == 'BANK_TRANSFER' ? 'Retiro a Cuenta Bancaria' : 'Retiro vía QR Simple',
               'subtitle': accountInfo,
-              'amount': '-\$${amount.toStringAsFixed(2)}',
+              'amount': '-Bs. ${amount.toStringAsFixed(2)}',
               'time': 'Hace un momento',
               'isCredit': false,
             });
