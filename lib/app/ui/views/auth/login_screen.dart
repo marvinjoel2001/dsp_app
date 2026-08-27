@@ -17,8 +17,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneOrEmailController = TextEditingController(text: '+591 70001234');
-  final _passwordController = TextEditingController(text: '123456');
+  final _phoneOrEmailController = TextEditingController(text: 'driver@dsp.com');
+  final _passwordController = TextEditingController(text: 'admin123');
   bool _obscurePassword = true;
 
   @override
@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Botón de Acceso Rápido Demo 1-Click (Solo para Pruebas / QA / Debug)
                   InkWell(
                     onTap: () async {
-                      await authCtrl.login('+591 70001234', '123456');
+                      await authCtrl.login('driver@dsp.com', 'admin123');
                       if (mounted) {
                         context.pushReplacementAnimated(const AllOrdersFeedScreen());
                       }

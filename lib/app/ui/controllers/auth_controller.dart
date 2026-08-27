@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/repositories/driver_repository.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../core/services/location_buffer_service.dart';
@@ -193,5 +194,16 @@ class AuthController extends ChangeNotifier {
     } else {
       LocationBufferService.stopTelemetrySync();
     }
+  }
+
+  Future<void> logout() async {
+    _currentDriver = null;
+    LocationBufferService.stopTelemetrySync();
+    SocketService().disconnect();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('driver_id');
+    await prefs.remove('driver_name');
+    notifyListeners();
   }
 }

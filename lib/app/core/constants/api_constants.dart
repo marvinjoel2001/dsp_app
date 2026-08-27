@@ -2,14 +2,14 @@ class ApiConstants {
   // App Branding
   static const String appName = 'Chiringuito Driver';
 
-  // Backend Base URLs (Soporta variables dart-define o valores por defecto)
+  // Backend Base URLs (Producción Render Cloud por defecto)
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000',
+    defaultValue: 'https://dsp-backend-q3mn.onrender.com',
   );
   static const String wsUrl = String.fromEnvironment(
     'SOCKET_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/tracking',
+    defaultValue: 'https://dsp-backend-q3mn.onrender.com/tracking',
   );
 
   // Mapbox Vector Tile URL & Public Token (Cargado vía dart-defines)

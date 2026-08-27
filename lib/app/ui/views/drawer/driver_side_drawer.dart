@@ -8,6 +8,7 @@ import '../navigation/live_map_navigation_screen.dart';
 import '../wallet/earnings_wallet_screen.dart';
 import '../profile/driver_documents_verification_screen.dart';
 import '../profile/edit_driver_profile_screen.dart';
+import '../auth/welcome_onboarding_screen.dart';
 
 class DriverSideDrawer extends StatelessWidget {
   const DriverSideDrawer({super.key});
@@ -241,6 +242,24 @@ class DriverSideDrawer extends StatelessWidget {
                       _showSupportDialog(context);
                     },
                   ),
+                  const SizedBox(height: 6),
+
+                  // Cerrar Sesión
+                  _buildDrawerItem(
+                    icon: Icons.logout,
+                    title: 'Cerrar Sesión',
+                    customColor: AppColors.error,
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await authCtrl.logout();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const WelcomeOnboardingScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
@@ -369,8 +388,10 @@ class DriverSideDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     bool isSelected = false,
+    Color? customColor,
     required VoidCallback onTap,
   }) {
+    final itemColor = customColor ?? (isSelected ? Colors.white : AppColors.textPrimary);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -385,7 +406,7 @@ class DriverSideDrawer extends StatelessWidget {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? Colors.white : AppColors.textPrimary,
+              color: itemColor,
             ),
             const SizedBox(width: 14),
             Text(
@@ -393,7 +414,7 @@ class DriverSideDrawer extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+                color: itemColor,
               ),
             ),
           ],
