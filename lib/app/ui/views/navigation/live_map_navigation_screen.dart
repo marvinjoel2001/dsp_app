@@ -38,6 +38,41 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
   void _recenterOnDriver(LatLng driverLocation, double zoom) {
     setState(() => _autoFollowDriver = true);
     _animatedMapMove(driverLocation, zoom);
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🎯 Centrado en el conductor • Modo Navegación Activo'),
+        duration: Duration(seconds: 1),
+        backgroundColor: AppColors.primaryDark,
+      ),
+    );
+  }
+
+  void _fitRouteBounds(ActiveRideController rideCtrl, LatLng driverPos, LatLng targetPoint) {
+    setState(() => _autoFollowDriver = false);
+    final points = <LatLng>[
+      driverPos,
+      targetPoint,
+      ...rideCtrl.routePolyline,
+    ];
+    if (points.isEmpty) return;
+
+    final bounds = LatLngBounds.fromPoints(points);
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.only(top: 190, bottom: 310, left: 40, right: 40),
+      ),
+    );
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🗺️ Mostrando la ruta completa por donde debe ir el conductor'),
+        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.primaryDark,
+      ),
+    );
   }
 
   void _animatedMapMove(LatLng destLocation, double destZoom) {
@@ -365,27 +400,84 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
 
                   const SizedBox(height: 10),
 
-                  // 3. HUD Superior Turn-By-Turn Card
-                  TurnGuidanceCard(
-                    instruction: rideCtrl.turnGuidance,
-                    modifier: currentStep?.modifier,
-                    distanceMeters: currentStep?.distanceMeters ?? (rideCtrl.routeDistanceKm * 1000),
-                    durationMinutes: rideCtrl.routeDurationMin,
-                    speedKmh: rideCtrl.driverSpeedKmh,
+                  // 3. HUD Superior Turn-By-Turn Card (Tocar para recentrar y escuchar maniobra)
+                  InkWell(
+                    onTap: () {
+                      _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5);
+                      _audioService.speakInstruction(rideCtrl.turnGuidance);
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: TurnGuidanceCard(
+                      instruction: rideCtrl.turnGuidance,
+                      modifier: currentStep?.modifier,
+                      distanceMeters: currentStep?.distanceMeters ?? (rideCtrl.routeDistanceKm * 1000),
+                      durationMinutes: rideCtrl.routeDurationMin,
+                      speedKmh: rideCtrl.driverSpeedKmh,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // 3. Botones Flotantes Laterales del Mapa (Recentrar GPS y Recalcular Ruta - Zona Superior Libre de Solapamientos)
+          // 3. Botones Flotantes Laterales del Mapa (Navegación, Ruta Completa y Recálculo)
           Positioned(
             right: 16,
             top: 175,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Botón Recalcular Ruta
+                // Botón 1: Centrar Conductor (Modo Navegación / Seguir Conductor)
+                InkWell(
+                  onTap: () => _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _autoFollowDriver ? AppColors.primary : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _autoFollowDriver ? AppColors.primary : const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _autoFollowDriver
+                              ? AppColors.primary.withValues(alpha: 0.35)
+                              : Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.my_location,
+                      size: 20,
+                      color: _autoFollowDriver ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Botón 2: Centrar Toda la Ruta (Para saber por dónde debe ir el driver)
+                InkWell(
+                  onTap: () => _fitRouteBounds(rideCtrl, driverPos, isDelivering ? dropoffPoint : pickupPoint),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: const Icon(Icons.alt_route_rounded, size: 22, color: AppColors.primaryDark),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Botón 3: Recalcular Ruta
                 InkWell(
                   onTap: () async {
                     await rideCtrl.recalculateRoute();
@@ -414,33 +506,53 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                     child: const Icon(Icons.sync, size: 20, color: Color(0xFF0F172A)),
                   ),
                 ),
-                const SizedBox(height: 10),
-
-                // Botón Recentrar GPS
-                InkWell(
-                  onTap: () => _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: _autoFollowDriver ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _autoFollowDriver ? AppColors.primary : const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.my_location,
-                      size: 20,
-                      color: _autoFollowDriver ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
+
+          // Botón Flotante Dinámico "RECENTRAR" cuando el usuario desplazó el mapa con el dedo
+          if (!_autoFollowDriver)
+            Positioned(
+              bottom: 275,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: InkWell(
+                  onTap: () => _recenterOnDriver(driverPos, rideCtrl.is3DView ? 16.8 : 15.5),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.38),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.navigation, size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'RECENTRAR NAVEGACIÓN',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           // 4. Panel Inferior Bottom Sheet Contextual
           Positioned(
