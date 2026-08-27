@@ -80,6 +80,15 @@ class AuthController extends ChangeNotifier {
     required String password,
     required String vehicleType,
     required String vehiclePlate,
+    String? ciNumber,
+    String? homeAddress,
+    String? avatarUrl,
+    String? idCardUrl,
+    String? licenseUrl,
+    String? soatUrl,
+    String? vehiclePhotoUrl,
+    String? contractSignatureSvg,
+    DateTime? contractAcceptedAt,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -93,6 +102,15 @@ class AuthController extends ChangeNotifier {
         'password': password,
         'vehicleType': vehicleType,
         'vehiclePlate': vehiclePlate,
+        if (ciNumber != null) 'ciNumber': ciNumber,
+        if (homeAddress != null) 'homeAddress': homeAddress,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
+        if (idCardUrl != null) 'idCardUrl': idCardUrl,
+        if (licenseUrl != null) 'licenseUrl': licenseUrl,
+        if (soatUrl != null) 'soatUrl': soatUrl,
+        if (vehiclePhotoUrl != null) 'vehiclePhotoUrl': vehiclePhotoUrl,
+        if (contractSignatureSvg != null) 'contractSignatureSvg': contractSignatureSvg,
+        if (contractAcceptedAt != null) 'contractAcceptedAt': contractAcceptedAt.toIso8601String(),
       });
 
       SocketService().initSocket();

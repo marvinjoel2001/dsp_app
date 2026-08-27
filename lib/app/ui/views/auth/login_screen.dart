@@ -7,6 +7,7 @@ import '../../../core/theme/page_transitions.dart';
 import '../../controllers/auth_controller.dart';
 import '../feed/all_orders_feed_screen.dart';
 import 'register_driver_screen.dart';
+import 'driver_verification_pending_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -160,7 +161,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _passwordController.text.isEmpty ? '123456' : _passwordController.text,
                               );
                               if (success && mounted) {
-                                context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                                if (authCtrl.isPendingVerification) {
+                                  context.pushReplacementAnimated(const DriverVerificationPendingScreen());
+                                } else {
+                                  context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                                }
                               } else if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

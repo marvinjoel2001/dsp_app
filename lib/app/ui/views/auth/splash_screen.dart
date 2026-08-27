@@ -6,6 +6,7 @@ import '../../../core/theme/page_transitions.dart';
 import '../../controllers/auth_controller.dart';
 import '../feed/all_orders_feed_screen.dart';
 import 'welcome_onboarding_screen.dart';
+import 'driver_verification_pending_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -116,7 +117,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     final authCtrl = context.read<AuthController>();
     if (authCtrl.isAuthenticated) {
-      context.pushReplacementAnimated(const AllOrdersFeedScreen());
+      if (authCtrl.isPendingVerification) {
+        context.pushReplacementAnimated(const DriverVerificationPendingScreen());
+      } else {
+        context.pushReplacementAnimated(const AllOrdersFeedScreen());
+      }
     } else {
       context.pushReplacementAnimated(const WelcomeOnboardingScreen());
     }

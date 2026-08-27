@@ -5,12 +5,16 @@ class DriverEntity {
   final String email;
   final String vehicleType;
   final String vehiclePlate;
+  final String? ciNumber;
+  final String? homeAddress;
   final String? avatarUrl;
   final String verificationStatus; // 'pending' | 'verified' | 'rejected'
   final String? idCardUrl;
   final String? licenseUrl;
   final String? soatUrl;
   final String? vehiclePhotoUrl;
+  final String? contractSignatureSvg;
+  final DateTime? contractAcceptedAt;
   final bool isOnline;
   final bool isActive;
   final double rating;
@@ -23,12 +27,16 @@ class DriverEntity {
     required this.email,
     required this.vehicleType,
     required this.vehiclePlate,
+    this.ciNumber,
+    this.homeAddress,
     this.avatarUrl,
     this.verificationStatus = 'verified',
     this.idCardUrl,
     this.licenseUrl,
     this.soatUrl,
     this.vehiclePhotoUrl,
+    this.contractSignatureSvg,
+    this.contractAcceptedAt,
     required this.isOnline,
     required this.isActive,
     required this.rating,

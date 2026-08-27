@@ -18,6 +18,7 @@ import '../navigation/live_map_navigation_screen.dart';
 import '../wallet/earnings_wallet_screen.dart';
 import '../profile/driver_documents_verification_screen.dart';
 import '../profile/edit_driver_profile_screen.dart';
+import '../auth/driver_verification_pending_screen.dart';
 
 class AllOrdersFeedScreen extends StatefulWidget {
   const AllOrdersFeedScreen({super.key});
@@ -106,6 +107,17 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           // Conmutador Rápido Online/Offline
           GestureDetector(
             onTap: () {
+              if (!isVerified) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⏳ Tu cuenta está en revisión por la central. No puedes recibir órdenes hasta ser aprobado.'),
+                    backgroundColor: Color(0xFFD97706),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+                context.pushAnimated(const DriverVerificationPendingScreen());
+                return;
+              }
               final nextState = !isOnline;
               authCtrl.toggleOnline(nextState);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -169,21 +181,21 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 22),
+                    const Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 22),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
-                        'Cuenta en revisión. Sube tus documentos para aceptar órdenes.',
+                        'Cuenta en revisión por la central. Debes esperar a que validen tu información para recibir órdenes.',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
                       ),
                     ),
                     TextButton(
-                      onPressed: () => context.pushAnimated(const DriverDocumentsVerificationScreen()),
-                      child: const Text('Subir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.warning)),
+                      onPressed: () => context.pushAnimated(const DriverVerificationPendingScreen()),
+                      child: const Text('Ver Estado', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.warning)),
                     ),
                   ],
                 ),
