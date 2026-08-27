@@ -15,49 +15,15 @@ class OrderRepositoryImpl implements OrderRepository {
     try {
       final url = ApiConstants.driverFeed.replaceAll('{id}', driverId);
       final response = await apiClient.dio.get(url);
-      final list = (response.data as List<dynamic>)
-          .map((item) => OrderModel.fromJson(item))
-          .toList();
-      if (list.isNotEmpty) return list;
-    } catch (_) {}
-
-    // High fidelity mock orders matching user's design image:
-    return [
-      OrderModel(
-        id: '434567',
-        status: OrderDeliveryStatus.created,
-        pickupAddress: '062 Kuhn Plains Suite 793',
-        pickupLat: -17.7833,
-        pickupLng: -63.1821,
-        dropoffAddress: '922 Wilfredo Tunnel',
-        dropoffLat: -17.7950,
-        dropoffLng: -63.1700,
-        price: 54.0,
-        driverPayout: 43.20,
-        packageNotes: 'Call when you will be near entrance',
-        trackingToken: 'track-434567',
-        estimatedTime: '12:35',
-        estimatedDistanceKm: 1.5,
-        createdAt: DateTime.now(),
-      ),
-      OrderModel(
-        id: '434566',
-        status: OrderDeliveryStatus.created,
-        pickupAddress: '42 King Mission Apt. 152',
-        pickupLat: -17.7780,
-        pickupLng: -63.1890,
-        dropoffAddress: '67 Hyatt Extension',
-        dropoffLat: -17.7910,
-        dropoffLng: -63.1750,
-        price: 72.0,
-        driverPayout: 57.60,
-        packageNotes: 'Leave with front security desk',
-        trackingToken: 'track-434566',
-        estimatedTime: '12:35',
-        estimatedDistanceKm: 1.0,
-        createdAt: DateTime.now(),
-      ),
-    ];
+      if (response.data is List) {
+        return (response.data as List<dynamic>)
+            .map((item) => OrderModel.fromJson(item))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
   }
 
   @override

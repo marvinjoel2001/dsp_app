@@ -15,9 +15,7 @@ class OrdersFeedController extends ChangeNotifier {
   List<OrderEntity> get orders => _orders;
   bool get isLoading => _isLoading;
 
-  OrdersFeedController({required this.orderRepository}) {
-    fetchOrders('c8716b1e-6240-4b2a-8c01-7faef83151cf');
-  }
+  OrdersFeedController({required this.orderRepository});
 
   void setTab(FeedTab tab) {
     _selectedTab = tab;

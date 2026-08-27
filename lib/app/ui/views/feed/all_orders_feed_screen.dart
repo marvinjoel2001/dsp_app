@@ -44,11 +44,13 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
         order: order,
         onAccept: () async {
           Navigator.pop(modalContext);
-          final driverId = authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf';
-          try {
-            await feedCtrl.acceptOrder(order.id, driverId);
-          } catch (_) {}
-          activeRideCtrl.setActiveOrder(order);
+          final driverId = authCtrl.currentDriver?.id ?? '';
+          if (driverId.isNotEmpty) {
+            try {
+              await feedCtrl.acceptOrder(order.id, driverId);
+            } catch (_) {}
+          }
+          activeRideCtrl.setActiveOrder(order, driverId: driverId);
           if (mounted) {
             context.pushAnimated(const LiveMapNavigationScreen());
           }
@@ -470,7 +472,13 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           Expanded(
             child: RefreshIndicator(
               color: AppColors.primary,
-              onRefresh: () => feedCtrl.fetchOrders(authCtrl.currentDriver?.id ?? 'c8716b1e-6240-4b2a-8c01-7faef83151cf'),
+              onRefresh: () {
+                final driverId = authCtrl.currentDriver?.id ?? '';
+                if (driverId.isNotEmpty) {
+                  return feedCtrl.fetchOrders(driverId);
+                }
+                return Future.value();
+              },
               child: feedCtrl.orders.isEmpty
                   ? Center(
                       child: Column(

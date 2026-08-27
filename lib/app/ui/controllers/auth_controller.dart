@@ -21,23 +21,21 @@ class AuthController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   AuthController({required this.driverRepository}) {
-    // Default logged-in driver: Alex Repartidor (Chiringuito Driver)
-    _currentDriver = DriverEntity(
-      id: 'c8716b1e-6240-4b2a-8c01-7faef83151cf',
-      fullName: 'Alex Repartidor',
-      phone: '+59170000000',
-      email: 'alex.courier@fooddrive.com',
-      vehicleType: 'MOTORCYCLE',
-      vehiclePlate: '1234-XYZ',
-      verificationStatus: 'verified', // Cambiable a 'pending' o 'rejected' para pruebas
-      isOnline: true,
-      isActive: true,
-      rating: 4.9,
-      walletBalance: 142.50,
-    );
-    // Initialize WebSockets and start location background telemetry
-    SocketService().initSocket();
-    LocationBufferService.startTelemetrySync(_currentDriver!.id);
+    _loadSavedSession();
+  }
+
+  Future<void> _loadSavedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final driverId = prefs.getString('driver_id');
+      final token = prefs.getString('access_token');
+      if (driverId != null && token != null && token.isNotEmpty) {
+        _currentDriver = await driverRepository.getDriverProfile(driverId);
+        SocketService().initSocket();
+        LocationBufferService.startTelemetrySync(_currentDriver!.id);
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   void clearError() {

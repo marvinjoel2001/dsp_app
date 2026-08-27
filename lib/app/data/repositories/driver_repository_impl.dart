@@ -14,29 +14,7 @@ class DriverRepositoryImpl implements DriverRepository {
 
   @override
   Future<DriverEntity> login(String email, String password) async {
-    // 1. Caso Demo Rápido local
-    if (email == 'alex.courier@fooddrive.com' && password == 'password123') {
-      final mock = DriverModel(
-        id: 'c8716b1e-6240-4b2a-8c01-7faef83151cf',
-        fullName: 'Alex Repartidor',
-        phone: '+59170000000',
-        email: email,
-        vehicleType: 'MOTORCYCLE',
-        vehiclePlate: '1234-XYZ',
-        verificationStatus: 'verified',
-        isOnline: true,
-        isActive: true,
-        rating: 4.9,
-        walletBalance: 128.50,
-      );
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', 'demo-token-alex-courier');
-      await prefs.setString('driver_id', mock.id);
-      await prefs.setString('driver_name', mock.fullName);
-      return mock;
-    }
-
-    // 2. Llamada real al backend NestJS
+    // Llamada real al backend NestJS
     try {
       final response = await apiClient.dio.post(
         ApiConstants.login,

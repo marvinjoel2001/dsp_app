@@ -104,30 +104,14 @@ class ActiveRideController extends ChangeNotifier {
     return [_driverLocation, ..._fullRoutePolyline.sublist(_simulationPolylineIndex + 1)];
   }
 
+  String? _driverId;
+
   ActiveRideController({required this.orderRepository}) {
     _socketService.initSocket();
+  }
 
-    // Orden de demostración inicial
-    _activeOrder = OrderEntity(
-      id: '434567',
-      status: OrderDeliveryStatus.assigned,
-      pickupAddress: 'Restaurante El Chiringuito Central',
-      pickupLat: -17.7833,
-      pickupLng: -63.1821,
-      dropoffAddress: 'Av. Las Palmas #420, Condominio El Bosque',
-      dropoffLat: -17.7950,
-      dropoffLng: -63.1700,
-      price: 54.0,
-      driverPayout: 43.20,
-      packageNotes: 'Tocar timbre 3B al llegar',
-      trackingToken: 'track-434567',
-      estimatedTime: '12 min',
-      estimatedDistanceKm: 1.5,
-      createdAt: DateTime.now(),
-    );
-
-    // Cargar ruta inicial
-    calculateCurrentRoute();
+  void setDriverId(String? driverId) {
+    _driverId = driverId;
   }
 
   @override
@@ -149,7 +133,8 @@ class ActiveRideController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setActiveOrder(OrderEntity order) {
+  void setActiveOrder(OrderEntity order, {String? driverId}) {
+    if (driverId != null) _driverId = driverId;
     _activeOrder = order;
     _currentStage = RideStage.assigned;
     _simulationPolylineIndex = 0;
@@ -227,7 +212,7 @@ class ActiveRideController extends ChangeNotifier {
 
         // Emitir telemetría GPS en tiempo real por WebSocket hacia el Backend y Panel Admin
         _socketService.emitLocationPing(
-          driverId: 'c8716b1e-6240-4b2a-8c01-7faef83151cf',
+          driverId: _driverId ?? 'driver-live',
           lat: currentPoint.latitude,
           lng: currentPoint.longitude,
           heading: _driverHeading,
