@@ -1,0 +1,827 @@
+[
+  {
+    "id": "TC001",
+    "title": "Log in and reach the driver workspace",
+    "description": "This verifies that a registered driver can sign in successfully and land in the authenticated workspace.",
+    "category": "Driver Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the driver workspace is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Accept an available delivery offer",
+    "description": "This verifies that a driver can accept an active offer from the feed and enter the assigned delivery workflow.",
+    "category": "Orders Feed & Offer Acceptance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the orders feed"
+      },
+      {
+        "type": "action",
+        "description": "Accept an available delivery offer"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the active delivery workflow is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Complete an active delivery from navigation",
+    "description": "Verifies that a driver with an accepted order can follow the active trip flow through pickup, trip start, and delivery completion with completion feedback.",
+    "category": "Live Navigation for Active Deliveries",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the feed navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Accept an available delivery offer"
+      },
+      {
+        "type": "action",
+        "description": "Click the active trip navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Mark arrival at pickup"
+      },
+      {
+        "type": "action",
+        "description": "Start the trip to the customer"
+      },
+      {
+        "type": "action",
+        "description": "Confirm delivery completion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify delivery completion feedback is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Follow the active route on the navigation screen",
+    "description": "Verifies that a driver on an active delivery can view route guidance on the navigation screen.",
+    "category": "Live Navigation for Active Deliveries",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the feed navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Accept an available delivery offer"
+      },
+      {
+        "type": "action",
+        "description": "Click the active trip navigation option"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mapped route is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify trip guidance is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "View current wallet balance and transaction history",
+    "description": "Verifies that a logged-in driver can open the wallet, see their current earnings balance, and review recent transactions.",
+    "category": "Wallet & Balance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the wallet navigation option"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the wallet balance is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the transaction history is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "View available delivery offers in the feed",
+    "description": "This verifies that an authenticated driver can open the feed and see available delivery offers with order details.",
+    "category": "Orders Feed & Offer Acceptance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the orders feed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify available delivery offers are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Go online from the feed",
+    "description": "Verifies that a logged-in driver can switch availability from offline to online and see the status update on the feed screen.",
+    "category": "Online/Offline Availability Toggle",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the feed navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Switch availability from offline to online"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the availability status badge shows online"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Refresh the feed and see updated offers",
+    "description": "This verifies that a logged-in driver can refresh the orders feed and see the list update.",
+    "category": "Orders Feed & Offer Acceptance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the orders feed"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the orders list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the refreshed offers list is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Request a withdrawal from wallet balance",
+    "description": "Verifies that a logged-in driver can enter a withdrawal request from the wallet and see a successful submission outcome.",
+    "category": "Wallet & Balance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the wallet navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Click the withdrawal request action"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid withdrawal amount into the amount field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the withdrawal request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a withdrawal confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Go offline from the feed",
+    "description": "Verifies that a logged-in driver can switch availability from online to offline and see the status update on the feed screen.",
+    "category": "Online/Offline Availability Toggle",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the feed navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Switch availability from online to offline"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the availability status badge shows offline"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Register a new driver and reach pending verification",
+    "description": "Verifies that a new driver can complete registration details and land on the pending verification status screen.",
+    "category": "Driver Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the personal details fields with valid information"
+      },
+      {
+        "type": "action",
+        "description": "Select a vehicle type"
+      },
+      {
+        "type": "action",
+        "description": "Accept the contract terms"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending verification status screen is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC012",
+    "title": "Complete driver registration and reach pending verification",
+    "description": "This verifies that a new driver can submit the required registration details and is taken to the pending verification status screen.",
+    "category": "Driver Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the full name field with a new driver name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the phone field with a valid phone number"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with a unique email address"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the CI number field with a valid CI number"
+      },
+      {
+        "type": "action",
+        "description": "Select a vehicle type"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the vehicle details fields with valid information"
+      },
+      {
+        "type": "action",
+        "description": "Accept the contract terms"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending verification status screen is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC013",
+    "title": "See verification status after signing in",
+    "description": "A returning driver who is not yet approved can sign in and be taken to the verification status screen instead of the delivery workspace.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credential field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the verification status screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a pending approval status is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC014",
+    "title": "View pending verification status",
+    "description": "Verifies that a pending-verification driver can open the status screen and see their approval state.",
+    "category": "Pending Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the verification status navigation option"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending verification status is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify approval status information is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC015",
+    "title": "See pending verification status on the review screen",
+    "description": "A pending-verification driver can open the review screen and see that their account is still under review.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a pending approval status is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a message explaining the account is under review is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC016",
+    "title": "Open the verification status screen for a pending driver",
+    "description": "This verifies that a pending-verification driver can open the verification screen and see their approval status.",
+    "category": "Driver Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the verification status screen"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending verification status is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC017",
+    "title": "Recheck verification status from the review screen",
+    "description": "A pending-verification driver can request a fresh status check and remain on the verification screen with an updated result visible.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /verification"
+      },
+      {
+        "type": "action",
+        "description": "Click the control to check status again"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the verification status is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the review screen remains available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC018",
+    "title": "View guidance while verification is pending",
+    "description": "A pending-verification driver can see what to do next while their account remains under review.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify next-step guidance for a pending driver is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC019",
+    "title": "Return to verification after leaving and coming back",
+    "description": "A pending-verification driver can leave the status screen and open it again later to confirm the account is still under review.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /verification"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /profile"
+      },
+      {
+        "type": "action",
+        "description": "Navigate back to /verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the verification status screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a pending approval status is displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC020",
+    "title": "Show an error for invalid login credentials",
+    "description": "This verifies that invalid login details are rejected and the driver remains on the login screen with an error message.",
+    "category": "Driver Login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with invalid-driver@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with wrong-password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login error message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated workspace is not displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC021",
+    "title": "Block withdrawal requests below the minimum",
+    "description": "Verifies that the wallet prevents submitting a withdrawal amount below the allowed minimum and shows a validation error.",
+    "category": "Wallet & Balance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the wallet navigation option"
+      },
+      {
+        "type": "action",
+        "description": "Click the withdrawal request action"
+      },
+      {
+        "type": "action",
+        "description": "Fill an amount below the minimum into the amount field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the withdrawal request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a withdrawal validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC022",
+    "title": "See a clear empty or waiting state when verification details are not yet available",
+    "description": "A pending-verification driver can open the status screen and see a clear waiting state when review details are not yet available.",
+    "category": "Driver Verification Pending",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty or waiting state is displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC023",
+    "title": "Block registration when required details are missing",
+    "description": "Verifies that the registration form prevents submission when required personal or vehicle details are omitted and shows validation errors.",
+    "category": "Driver Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form without completing required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify registration validation errors are visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC024",
+    "title": "Block registration when a required field is missing",
+    "description": "This verifies that the registration flow prevents continuation when required driver details are incomplete.",
+    "category": "Driver Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /register"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the full name field with a new driver name"
+      },
+      {
+        "type": "action",
+        "description": "Leave at least one required registration field empty"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify registration is not submitted"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC025",
+    "title": "Show validation for an invalid withdrawal amount",
+    "description": "This verifies that the wallet blocks withdrawal amounts below the allowed minimum and shows validation feedback.",
+    "category": "Wallet",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email or phone field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the wallet"
+      },
+      {
+        "type": "action",
+        "description": "Enter a withdrawal amount below the minimum"
+      },
+      {
+        "type": "action",
+        "description": "Submit the withdrawal request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a withdrawal validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  }
+]

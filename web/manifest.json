@@ -1,11 +1,11 @@
 {
-    "name": "dsp_driver_app",
-    "short_name": "dsp_driver_app",
+    "name": "Chiringuito Driver",
+    "short_name": "Driver App",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Chiringuito Driver - Open DSP Real-Time Dispatch & Logistics App",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

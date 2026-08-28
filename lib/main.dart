@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'app/core/theme/app_theme.dart';
 import 'app/core/network/api_client.dart';
@@ -8,9 +10,25 @@ import 'app/ui/controllers/auth_controller.dart';
 import 'app/ui/controllers/orders_feed_controller.dart';
 import 'app/ui/controllers/active_ride_controller.dart';
 import 'app/ui/views/auth/splash_screen.dart';
+import 'app/ui/views/auth/welcome_onboarding_screen.dart';
+import 'app/ui/views/auth/login_screen.dart';
+import 'app/ui/views/auth/register_driver_screen.dart';
+import 'app/ui/views/feed/all_orders_feed_screen.dart';
+import 'app/ui/views/wallet/earnings_wallet_screen.dart';
+import 'app/ui/views/auth/driver_verification_pending_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Habilitar árbol semántico accesible continuo para pruebas automatizadas (Playwright / TestSprite)
+  RendererBinding.instance.ensureSemantics();
+
+  // Bloquear orientación exclusivamente en modo vertical (Portrait)
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   final apiClient = ApiClient();
   final driverRepo = DriverRepositoryImpl(apiClient: apiClient);
   final orderRepo = OrderRepositoryImpl(apiClient: apiClient);
@@ -42,7 +60,16 @@ class OpenDspDriverApp extends StatelessWidget {
       title: 'Chiringuito Driver',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const SplashScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/welcome': (context) => const WelcomeOnboardingScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterDriverScreen(),
+        '/feed': (context) => const AllOrdersFeedScreen(),
+        '/wallet': (context) => const EarningsWalletScreen(),
+        '/verification': (context) => const DriverVerificationPendingScreen(),
+      },
     );
   }
 }

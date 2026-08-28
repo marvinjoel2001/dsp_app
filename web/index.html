@@ -27,9 +27,11 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico"/>
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="shortcut icon" href="favicon.ico"/>
 
-  <title>dsp_driver_app</title>
+  <title>Chiringuito Driver</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -39,8 +41,24 @@
     or to give the user feedback during the initialization process.
 
     For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <script>
+    // Auto-enable Flutter Web accessibility semantics for TestSprite / Playwright automation
+    function tryEnableSemantics() {
+      const semBtn = document.querySelector('flt-semantics-placeholder');
+      if (semBtn) {
+        semBtn.click();
+        return true;
+      }
+      return false;
+    }
+    window.addEventListener('flutter-first-frame', tryEnableSemantics);
+    const semObserver = new MutationObserver(() => {
+      if (tryEnableSemantics()) {
+        semObserver.disconnect();
+      }
+    });
+    semObserver.observe(document.documentElement, { childList: true, subtree: true });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
