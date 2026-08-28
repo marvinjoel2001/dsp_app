@@ -62,7 +62,7 @@ class MapboxRoutingService {
     required LatLng destination,
   }) async {
     try {
-      final token = ApiConstants.mapboxPublicToken;
+      const token = ApiConstants.mapboxPublicToken;
       final url = Uri.parse(
         'https://api.mapbox.com/directions/v5/mapbox/driving/'
         '${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}'

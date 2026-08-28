@@ -233,7 +233,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       );
 
       if (photo == null) {
-        setState(() => _isCapturingSelfie = false);
+        if (mounted) setState(() => _isCapturingSelfie = false);
         return;
       }
 
@@ -246,18 +246,17 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         folder: 'chiringuito/drivers/avatars',
       );
 
+      if (!mounted) return;
       setState(() {
         _avatarUrl = result.secureUrl;
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Fotografía facial capturada y validada correctamente.'),
-            backgroundColor: AppColors.primary,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Fotografía facial capturada y validada correctamente.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -291,6 +290,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       );
       if (file == null) return;
 
+      if (!mounted) return;
       setState(() {
         _uploadingDocs[docType] = true;
         _docErrors[docType] = null;
@@ -305,6 +305,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         folder: 'chiringuito/drivers/documents',
       );
 
+      if (!mounted) return;
       setState(() {
         if (docType == 'id_card') _idCardUrl = result.secureUrl;
         if (docType == 'license') _licenseUrl = result.secureUrl;
@@ -453,7 +454,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
     ];
 
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       decoration: const BoxDecoration(
         color: Colors.white,

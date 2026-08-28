@@ -88,7 +88,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
             } catch (_) {}
           }
           activeRideCtrl.setActiveOrder(order, driverId: driverId);
-          if (mounted) {
+          if (context.mounted) {
             context.pushAnimated(const LiveMapNavigationScreen());
           }
         },
@@ -307,7 +307,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
     AuthController authCtrl,
     bool isOnline,
   ) {
-    final hasActiveOrder = activeRideCtrl.activeOrder != null;
+    final hasActiveOrder = activeRideCtrl.activeOrder != null && activeRideCtrl.currentStage != RideStage.delivered;
 
     return ValueListenableBuilder<LatLng?>(
       valueListenable: LocationBufferService.currentPositionNotifier,

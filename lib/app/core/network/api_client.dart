@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
@@ -30,7 +31,12 @@ class ApiClient {
         },
         onError: (DioException error, handler) {
           // Centralized error logging
-          print('API Error [${error.response?.statusCode}]: ${error.message}');
+          if (kDebugMode) {
+            debugPrint('API Error [${error.response?.statusCode}]: ${error.message}');
+            if (error.response?.data != null) {
+              debugPrint('API Error Data: ${error.response?.data}');
+            }
+          }
           return handler.next(error);
         },
       ),

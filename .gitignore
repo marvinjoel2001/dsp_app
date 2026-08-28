@@ -72,6 +72,7 @@ migrate_working_dir/
 .env
 .env.*
 dart_defines.json
+dart.json
 env/*.json
 !env/dart_define.example.json
 

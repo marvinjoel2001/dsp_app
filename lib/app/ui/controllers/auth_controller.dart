@@ -97,23 +97,41 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 1. Registro base en Auth (campos requeridos y validados por /v1/auth/register-driver)
       _currentDriver = await driverRepository.registerDriver({
         'fullName': fullName,
         'email': email,
         'phone': phone,
         'password': password,
         'vehicleType': vehicleType,
-        'vehiclePlate': vehiclePlate,
-        if (ciNumber != null) 'ciNumber': ciNumber,
-        if (homeAddress != null) 'homeAddress': homeAddress,
-        if (avatarUrl != null) 'avatarUrl': avatarUrl,
-        if (idCardUrl != null) 'idCardUrl': idCardUrl,
-        if (licenseUrl != null) 'licenseUrl': licenseUrl,
-        if (soatUrl != null) 'soatUrl': soatUrl,
-        if (vehiclePhotoUrl != null) 'vehiclePhotoUrl': vehiclePhotoUrl,
-        if (contractSignatureSvg != null) 'contractSignatureSvg': contractSignatureSvg,
-        if (contractAcceptedAt != null) 'contractAcceptedAt': contractAcceptedAt.toIso8601String(),
+        'vehiclePlate': vehiclePlate.isEmpty ? 'N/A' : vehiclePlate,
       });
+
+      // 2. Asociar documentos fotográficos en /v1/drivers/:id/documents si fueron subidos
+      final hasDocs = idCardUrl != null || licenseUrl != null || soatUrl != null || vehiclePhotoUrl != null;
+      if (hasDocs && _currentDriver != null) {
+        try {
+          _currentDriver = await driverRepository.uploadDocuments(_currentDriver!.id, {
+            if (idCardUrl != null) 'idCardUrl': idCardUrl,
+            if (licenseUrl != null) 'licenseUrl': licenseUrl,
+            if (soatUrl != null) 'soatUrl': soatUrl,
+            if (vehiclePhotoUrl != null) 'vehiclePhotoUrl': vehiclePhotoUrl,
+          });
+        } catch (docErr) {
+          debugPrint('Aviso: no se pudo sincronizar documentos secundarios: $docErr');
+        }
+      }
+
+      // 3. Asociar avatar fotográfico en /v1/drivers/:id/profile si existe
+      if (avatarUrl != null && _currentDriver != null) {
+        try {
+          _currentDriver = await driverRepository.updateProfile(_currentDriver!.id, {
+            'avatarUrl': avatarUrl,
+          });
+        } catch (avatarErr) {
+          debugPrint('Aviso: no se pudo sincronizar avatar secundario: $avatarErr');
+        }
+      }
 
       SocketService().initSocket();
       LocationBufferService.startTelemetrySync(_currentDriver!.id);

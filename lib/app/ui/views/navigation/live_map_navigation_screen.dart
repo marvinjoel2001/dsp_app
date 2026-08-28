@@ -734,7 +734,7 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                           child: Text(
                             rideCtrl.isWithinGeofence
                                 ? 'Ubicación Validada (${rideCtrl.distanceToCurrentTargetMeters.round()} m) • Dentro del radio ✅'
-                                : 'A ${rideCtrl.distanceToCurrentTargetMeters >= 1000 ? (rideCtrl.distanceToCurrentTargetMeters / 1000).toStringAsFixed(1) + " km" : rideCtrl.distanceToCurrentTargetMeters.round().toString() + " m"} del destino (Radio: < 150m)',
+                                : 'A ${rideCtrl.distanceToCurrentTargetMeters >= 1000 ? "${(rideCtrl.distanceToCurrentTargetMeters / 1000).toStringAsFixed(1)} km" : "${rideCtrl.distanceToCurrentTargetMeters.round()} m"} del destino (Radio: < 150m)',
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w800,
@@ -755,6 +755,13 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                     ),
                     child: ElevatedButton(
                       onPressed: () {
+                        // Si la orden ya fue entregada o no hay orden activa, volver directamente al mapa
+                        if (rideCtrl.currentStage == RideStage.delivered || rideCtrl.activeOrder == null) {
+                          rideCtrl.completeAndClearRide();
+                          Navigator.of(context).pop();
+                          return;
+                        }
+
                         // Validación Estricta de Proximidad Geoespacial
                         if (!rideCtrl.isWithinGeofence) {
                           _showOutOfRangeDialog(
@@ -774,15 +781,48 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                             builder: (_) => ProofOfDeliveryDialog(
                               onConfirmed: ({proofUrl, signatureSvg, notes}) async {
                                 final payout = order?.driverPayout ?? 43.20;
+
+                                // Indicador visual de guardado
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const Center(
+                                    child: Card(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircularProgressIndicator(strokeWidth: 2.5),
+                                            SizedBox(width: 16),
+                                            Text(
+                                              'Finalizando entrega...',
+                                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+
                                 await rideCtrl.advanceNextStage(
                                   proofPhotoUrl: proofUrl,
                                   signatureSvg: signatureSvg,
                                   notes: notes,
                                 );
+
+                                // Cerrar el diálogo de carga
+                                if (context.mounted) {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                }
+
                                 if (context.mounted) {
                                   showDialog(
                                     context: context,
-                                    builder: (_) => AlertDialog(
+                                    barrierDismissible: false,
+                                    builder: (dialogCtx) => AlertDialog(
                                       backgroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                       title: const Row(
@@ -798,17 +838,27 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
                                         ],
                                       ),
                                       content: Text(
-                                        '🎉 ¡Excelente trabajo, ${authCtrl.currentDriver?.fullName ?? "Alex"}!\n\nHas ganado +Bs. ${payout.toStringAsFixed(2)} por esta entrega. El comprobante POD fue respaldado en Cloudinary y tu saldo ha sido acreditado en Chiringuito.',
+                                        '🎉 ¡Excelente trabajo, ${authCtrl.currentDriver?.fullName ?? "Alex"}!\n\nHas ganado +Bs. ${payout.toStringAsFixed(2)} por esta entrega. El comprobante POD fue guardado y tu saldo ha sido acreditado en Chiringuito.',
                                         style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF334155)),
                                       ),
                                       actions: [
                                         ElevatedButton(
                                           onPressed: () {
-                                            Navigator.pop(context);
-                                            Navigator.pop(context);
+                                            rideCtrl.completeAndClearRide();
+                                            Navigator.of(dialogCtx).pop();
+                                            if (context.mounted) {
+                                              Navigator.of(context).pop();
+                                            }
                                           },
-                                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                                          child: const Text('Volver al Mapa', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.primary,
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                          ),
+                                          child: const Text(
+                                            'Volver al Mapa',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -894,7 +944,7 @@ class _LiveMapNavigationScreenState extends State<LiveMapNavigationScreen> with 
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Te encuentras a ${distanceMeters >= 1000 ? (distanceMeters / 1000).toStringAsFixed(1) + " km" : distanceMeters.round().toString() + " metros"} de ${isDelivering ? "la dirección de entrega del cliente" : "el comercio de recogida"}.\n\nPor políticas de seguridad y validación de entrega, debes estar a menos de 150 metros del punto para confirmar este paso.',
+              'Te encuentras a ${distanceMeters >= 1000 ? "${(distanceMeters / 1000).toStringAsFixed(1)} km" : "${distanceMeters.round()} metros"} de ${isDelivering ? "la dirección de entrega del cliente" : "el comercio de recogida"}.\n\nPor políticas de seguridad y validación de entrega, debes estar a menos de 150 metros del punto para confirmar este paso.',
               style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF334155)),
             ),
             const SizedBox(height: 14),

@@ -304,18 +304,35 @@ class ActiveRideController extends ChangeNotifier {
         _audioService.playEarningsCash();
         _audioService.speakInstruction("¡Entrega completada exitosamente! Pago acreditado a tu billetera.");
         _simulationTimer?.cancel();
-        await orderRepository.updateOrderStatus(
-          _activeOrder!.id,
-          'DELIVERED',
-          proofUrl: proofPhotoUrl,
-          signatureSvg: signatureSvg,
-        );
+        if (_activeOrder != null) {
+          final orderIdToUpdate = _activeOrder!.id;
+          try {
+            await orderRepository.updateOrderStatus(
+              orderIdToUpdate,
+              'DELIVERED',
+              proofUrl: proofPhotoUrl,
+              signatureSvg: signatureSvg,
+            );
+          } catch (e) {
+            debugPrint('Aviso al actualizar orden en backend: $e');
+          }
+        }
         break;
       case RideStage.delivered:
-        _simulationTimer?.cancel();
-        _activeOrder = null;
+        completeAndClearRide();
         break;
     }
+    notifyListeners();
+  }
+
+  /// Limpia la orden activa y restablece el estado para volver al mapa principal de búsqueda
+  void completeAndClearRide() {
+    _simulationTimer?.cancel();
+    _activeOrder = null;
+    _currentStage = RideStage.assigned;
+    _turnGuidance = "Buscando nuevos pedidos...";
+    _fullRoutePolyline = [];
+    _routeSteps = [];
     notifyListeners();
   }
 }

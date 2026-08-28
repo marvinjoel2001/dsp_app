@@ -36,7 +36,10 @@ class DriverRepositoryImpl implements DriverRepository {
       return DriverModel.fromJson(driverData ?? {});
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMsg = e.response?.data?['message'] ??
+        final data = e.response?.data;
+        final errorMsg = (data is Map
+            ? (data['mensaje'] ?? data['message'] ?? data['detalles'])
+            : null) ??
             (e.response?.statusCode == 401
                 ? 'Correo electrónico o contraseña incorrectos.'
                 : 'Error en la autenticación (${e.response?.statusCode}).');
@@ -71,7 +74,10 @@ class DriverRepositoryImpl implements DriverRepository {
       return DriverModel.fromJson(driverData ?? {});
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMsg = e.response?.data?['message'] ??
+        final data = e.response?.data;
+        final errorMsg = (data is Map
+            ? (data['mensaje'] ?? data['message'] ?? data['detalles'])
+            : null) ??
             (e.response?.statusCode == 409
                 ? 'Ya existe un conductor registrado con este correo o teléfono.'
                 : 'Error al registrar conductor (${e.response?.statusCode}).');

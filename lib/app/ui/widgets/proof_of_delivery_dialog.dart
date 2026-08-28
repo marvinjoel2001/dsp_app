@@ -119,6 +119,7 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
       await Permission.camera.request();
     }
 
+    if (!mounted) return;
     setState(() {
       _isUploadingPhoto = true;
       _validationError = null;
@@ -132,7 +133,7 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
       );
 
       if (image == null) {
-        setState(() => _isUploadingPhoto = false);
+        if (mounted) setState(() => _isUploadingPhoto = false);
         return;
       }
 
@@ -145,6 +146,7 @@ class _ProofOfDeliveryDialogState extends State<ProofOfDeliveryDialog> {
         folder: 'chiringuito/deliveries/pod',
       );
 
+      if (!mounted) return;
       setState(() {
         _photoTaken = true;
         _photoUrl = result.secureUrl;

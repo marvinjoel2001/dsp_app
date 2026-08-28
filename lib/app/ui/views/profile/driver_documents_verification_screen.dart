@@ -76,7 +76,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.primaryLight,
                     shape: BoxShape.circle,
                   ),
@@ -98,7 +98,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.secondaryLight,
                     shape: BoxShape.circle,
                   ),
@@ -143,6 +143,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
 
       if (pickedFile == null) return;
 
+      if (!mounted) return;
       setState(() => _uploadingDocType = docType);
 
       final bytes = await pickedFile.readAsBytes();
@@ -154,6 +155,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
         folder: 'chiringuito/drivers/documents',
       );
 
+      if (!mounted) return;
       setState(() {
         if (docType == 'id_card') _idCardUrl = result.secureUrl;
         if (docType == 'license') _licenseUrl = result.secureUrl;
@@ -366,6 +368,7 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
                             soatUrl: _soatUrl,
                             vehiclePhotoUrl: _vehiclePhotoUrl,
                           );
+                          if (!mounted) return;
                           setState(() => _isSaving = false);
 
                           if (context.mounted) {

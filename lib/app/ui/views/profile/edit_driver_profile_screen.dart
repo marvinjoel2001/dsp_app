@@ -216,7 +216,7 @@ class _EditDriverProfileScreenState extends State<EditDriverProfileScreen> {
                                 vehiclePlate: _vehiclePlateController.text.trim().toUpperCase(),
                               );
 
-                              if (success && mounted) {
+                              if (success && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('✅ Perfil actualizado correctamente.'),

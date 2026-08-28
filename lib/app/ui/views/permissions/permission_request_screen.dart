@@ -21,13 +21,16 @@ class _PermissionRequestScreenState extends State<PermissionRequestScreen> {
 
     final results = await _permissionsService.requestAllPermissions();
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (mounted) {
-      final locationOk = results['location'] ?? false;
-      if (locationOk) {
+    final locationOk = results['location'] ?? false;
+    if (locationOk) {
+      if (context.mounted) {
         context.pushReplacementAnimated(const AllOrdersFeedScreen());
-      } else {
+      }
+    } else {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(

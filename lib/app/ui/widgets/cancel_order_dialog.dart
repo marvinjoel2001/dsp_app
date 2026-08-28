@@ -151,10 +151,10 @@ class _CancelOrderDialogState extends State<CancelOrderDialog> {
                 decoration: BoxDecoration(
                   color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.error.withOpacity(0.4)),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
                 ),
-                child: Column(
-                  children: const [
+                child: const Column(
+                  children: [
                     Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 36),
                     SizedBox(height: 10),
                     Text(

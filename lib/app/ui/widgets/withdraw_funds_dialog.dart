@@ -271,7 +271,7 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                                 accountNumberOrPhone,
                               );
 
-                              if (!mounted) return;
+                              if (!context.mounted) return;
 
                               if (success) {
                                 Navigator.pop(context);

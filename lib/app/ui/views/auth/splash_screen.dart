@@ -74,6 +74,19 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       }
 
       _videoController!.addListener(_videoListener);
+
+      // Safety timeout: si por decodificación de hardware o throttling el video se retrasa,
+      // aseguramos la transición automática tras su duración más margen de seguridad.
+      final dur = _videoController!.value.duration;
+      final maxWait = (dur > Duration.zero && dur.inSeconds < 10)
+          ? dur + const Duration(milliseconds: 500)
+          : const Duration(seconds: 4);
+      Future.delayed(maxWait, () {
+        if (mounted && !_isVideoFinished) {
+          _videoController?.removeListener(_videoListener);
+          _onVideoFinished();
+        }
+      });
     } catch (e) {
       // Fallback si el dispositivo/emulador no soporta el formato de video
       if (mounted) {
@@ -98,6 +111,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void _onVideoFinished() {
     if (_isVideoFinished) return;
     _isVideoFinished = true;
+
+    // Pausar inmediatamente el decodificador de video para liberar memoria/GPU
+    try {
+      _videoController?.pause();
+    } catch (_) {}
 
     // Desvanecer video e iniciar splash con logo
     _videoFadeController.forward().then((_) {
@@ -140,7 +158,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void dispose() {
     _videoController?.removeListener(_videoListener);
-    _videoController?.dispose();
+    try {
+      _videoController?.pause();
+      _videoController?.dispose();
+    } catch (_) {}
     _logoAnimController.dispose();
     _videoFadeController.dispose();
     super.dispose();

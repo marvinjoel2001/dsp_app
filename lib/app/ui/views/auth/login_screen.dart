@@ -162,14 +162,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _phoneOrEmailController.text.trim(),
                                 _passwordController.text.isEmpty ? '123456' : _passwordController.text,
                               );
-                              if (!mounted) return;
+                              if (!context.mounted) return;
 
                               if (success) {
                                 if (authCtrl.isPendingVerification) {
                                   context.pushReplacementAnimated(const DriverVerificationPendingScreen());
                                 } else {
                                   final hasPermissions = await AppPermissionsService().hasAllRequiredPermissions();
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   if (hasPermissions) {
                                     context.pushReplacementAnimated(const AllOrdersFeedScreen());
@@ -255,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   InkWell(
                     onTap: () async {
                       await authCtrl.login('driver@dsp.com', 'admin123');
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       context.pushReplacementAnimated(const AllOrdersFeedScreen());
                     },
                     borderRadius: BorderRadius.circular(16),

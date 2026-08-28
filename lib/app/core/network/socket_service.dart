@@ -24,7 +24,7 @@ class SocketService {
     _socket = io.io(
       ApiConstants.wsUrl,
       io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling'])
           .enableAutoConnect()
           .enableReconnection()
           .setReconnectionAttempts(999)
