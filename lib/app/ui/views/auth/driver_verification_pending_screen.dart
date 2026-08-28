@@ -101,8 +101,11 @@ class _DriverVerificationPendingScreenState extends State<DriverVerificationPend
         automaticallyImplyLeading: false,
         actions: [
           TextButton.icon(
-            onPressed: () {
-              context.pushReplacementAnimated(const WelcomeOnboardingScreen());
+            onPressed: () async {
+              await authCtrl.logout();
+              if (context.mounted) {
+                context.pushReplacementAnimated(const WelcomeOnboardingScreen());
+              }
             },
             icon: const Icon(Icons.logout, size: 16, color: Color(0xFF64748B)),
             label: const Text('Salir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),

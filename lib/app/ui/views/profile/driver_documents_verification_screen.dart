@@ -373,6 +373,8 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
 
                           if (context.mounted) {
                             if (success) {
+                              await authCtrl.refreshProfile();
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('🎉 Documentos guardados y enviados a revisión exitosamente.'),
@@ -382,8 +384,8 @@ class _DriverDocumentsVerificationScreenState extends State<DriverDocumentsVerif
                               Navigator.pop(context);
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Error al guardar documentos en el servidor.'),
+                                SnackBar(
+                                  content: Text(authCtrl.errorMessage ?? 'Error al guardar documentos en el servidor.'),
                                   backgroundColor: AppColors.error,
                                 ),
                               );

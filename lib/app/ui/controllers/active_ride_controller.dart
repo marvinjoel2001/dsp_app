@@ -7,6 +7,7 @@ import '../../domain/entities/order_entity.dart';
 import '../../core/services/mapbox_routing_service.dart';
 import '../../core/services/app_audio_service.dart';
 import '../../core/network/socket_service.dart';
+import '../../core/services/location_buffer_service.dart';
 
 enum RideStage {
   assigned, // Etapa 1: En ruta al comercio
@@ -153,6 +154,10 @@ class ActiveRideController extends ChangeNotifier {
     final pickup = LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng);
     final dropoff = LatLng(_activeOrder!.dropoffLat, _activeOrder!.dropoffLng);
 
+    final currentGps = LocationBufferService.currentPositionNotifier.value;
+    if (currentGps != null) {
+      _driverLocation = currentGps;
+    }
     LatLng origin = _driverLocation;
     LatLng destination = (_currentStage == RideStage.assigned || _currentStage == RideStage.arrivedAtPickup)
         ? pickup
@@ -268,12 +273,17 @@ class ActiveRideController extends ChangeNotifier {
   Future<void> cancelActiveOrder(String reason) async {
     if (_activeOrder == null) return;
     _simulationTimer?.cancel();
+    final orderId = _activeOrder!.id;
     try {
-      await orderRepository.updateOrderStatus(_activeOrder!.id, 'CANCELLED');
-    } catch (_) {}
+      await orderRepository.updateOrderStatus(orderId, 'CANCELLED');
+    } catch (e) {
+      debugPrint('Aviso al cancelar orden en backend: $e');
+    }
     _activeOrder = null;
     _currentStage = RideStage.assigned;
     _turnGuidance = "Orden cancelada";
+    _fullRoutePolyline = [];
+    _routeSteps = [];
     notifyListeners();
   }
 
@@ -289,13 +299,21 @@ class ActiveRideController extends ChangeNotifier {
         _currentStage = RideStage.arrivedAtPickup;
         _turnGuidance = "Has llegado al Comercio. Solicita y verifica el pedido #${_activeOrder!.id}.";
         _audioService.speakInstruction("Has llegado al comercio. Solicita el pedido al personal.");
-        await orderRepository.updateOrderStatus(_activeOrder!.id, 'ARRIVED_AT_PICKUP');
+        try {
+          await orderRepository.updateOrderStatus(_activeOrder!.id, 'ARRIVED_AT_PICKUP');
+        } catch (e) {
+          debugPrint('Aviso al notificar llegada a comercio: $e');
+        }
         break;
       case RideStage.arrivedAtPickup:
         _currentStage = RideStage.inTransit;
         _driverLocation = LatLng(_activeOrder!.pickupLat, _activeOrder!.pickupLng);
         _audioService.speakInstruction("Iniciando ruta hacia el cliente. Conduce con precaución.");
-        await orderRepository.updateOrderStatus(_activeOrder!.id, 'IN_TRANSIT');
+        try {
+          await orderRepository.updateOrderStatus(_activeOrder!.id, 'IN_TRANSIT');
+        } catch (e) {
+          debugPrint('Aviso al notificar inicio de tránsito: $e');
+        }
         calculateCurrentRoute();
         break;
       case RideStage.inTransit:

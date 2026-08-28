@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_svg_icons.dart';
 import '../../../core/theme/page_transitions.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/active_ride_controller.dart';
 import '../navigation/live_map_navigation_screen.dart';
 import '../wallet/earnings_wallet_screen.dart';
 import '../profile/driver_documents_verification_screen.dart';
@@ -173,7 +174,18 @@ class DriverSideDrawer extends StatelessWidget {
                     isSelected: true,
                     onTap: () {
                       Navigator.pop(context);
-                      context.pushAnimated(const LiveMapNavigationScreen());
+                      final activeOrder = context.read<ActiveRideController>().activeOrder;
+                      if (activeOrder == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('ℹ️ No tienes ningún viaje activo en curso.'),
+                            backgroundColor: Color(0xFF0F172A),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } else {
+                        context.pushAnimated(const LiveMapNavigationScreen());
+                      }
                     },
                   ),
                   const SizedBox(height: 6),

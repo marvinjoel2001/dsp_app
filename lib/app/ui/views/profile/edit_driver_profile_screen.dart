@@ -224,6 +224,13 @@ class _EditDriverProfileScreenState extends State<EditDriverProfileScreen> {
                                   ),
                                 );
                                 Navigator.pop(context);
+                              } else if (!success && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(authCtrl.errorMessage ?? 'Error al actualizar el perfil en el servidor.'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
                               }
                             }
                           },
