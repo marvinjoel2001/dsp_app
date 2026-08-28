@@ -13,9 +13,13 @@ class AppPermissionsService {
     if (kIsWeb) return true;
 
     final locationStatus = await Permission.location.status;
-    final cameraStatus = await Permission.camera.status;
+    final notificationStatus = await Permission.notification.status;
 
-    return locationStatus.isGranted && cameraStatus.isGranted;
+    // La ubicación es mandataria; la notificación es crucial para órdenes
+    final isLocationOk = locationStatus.isGranted || locationStatus.isLimited;
+    final isNotificationOk = notificationStatus.isGranted || notificationStatus.isProvisional;
+
+    return isLocationOk && isNotificationOk;
   }
 
   /// Solicita permisos de ubicación GPS
@@ -38,6 +42,14 @@ class AppPermissionsService {
       if (permission == LocationPermission.deniedForever) {
         return false;
       }
+
+      // Permiso de rastreo en segundo plano si está disponible
+      try {
+        final bgStatus = await Permission.locationAlways.status;
+        if (!bgStatus.isGranted) {
+          await Permission.locationAlways.request();
+        }
+      } catch (_) {}
 
       return true;
     } catch (e) {

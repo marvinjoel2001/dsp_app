@@ -75,7 +75,7 @@ class _DriverVerificationPendingScreenState extends State<DriverVerificationPend
   }
 
   Future<void> _openWhatsAppSupport() async {
-    final phone = '+59170000000';
+    const phone = '+59170000000';
     final driver = context.read<AuthController>().currentDriver;
     final text = Uri.encodeComponent(
       'Hola equipo de operaciones Chiringuito, solicito la activación de mi cuenta de conductor: ${driver?.fullName ?? ""} (CI: ${driver?.ciNumber ?? ""})',
@@ -194,8 +194,8 @@ class _DriverVerificationPendingScreenState extends State<DriverVerificationPend
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: const Color(0xFFE2E8F0),
-                          backgroundImage: driver?.avatarUrl != null && driver!.avatarUrl!.isNotEmpty
-                              ? NetworkImage(driver!.avatarUrl!)
+                          backgroundImage: (driver?.avatarUrl != null && driver!.avatarUrl!.isNotEmpty)
+                              ? NetworkImage(driver.avatarUrl!)
                               : null,
                           child: (driver?.avatarUrl == null || driver!.avatarUrl!.isEmpty)
                               ? const Icon(Icons.person, color: Color(0xFF64748B))

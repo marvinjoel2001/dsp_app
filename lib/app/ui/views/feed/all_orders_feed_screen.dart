@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -6,6 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_svg_icons.dart';
 import '../../../core/theme/page_transitions.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/services/location_buffer_service.dart';
+import '../../../core/services/app_audio_service.dart';
 import '../../controllers/orders_feed_controller.dart';
 import '../../controllers/active_ride_controller.dart';
 import '../../controllers/auth_controller.dart';
@@ -30,11 +33,43 @@ class AllOrdersFeedScreen extends StatefulWidget {
 class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
   int _selectedBottomNavIndex = 0;
   final MapController _homeMapController = MapController();
+  StreamSubscription? _orderSubscription;
+  bool _isModalOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final feedCtrl = context.read<OrdersFeedController>();
+      final authCtrl = context.read<AuthController>();
+      if (authCtrl.currentDriver != null) {
+        feedCtrl.fetchOrders(authCtrl.currentDriver!.id);
+      }
+
+      // Escucha reactiva en tiempo real para nuevas órdenes entrantes vía WebSockets
+      _orderSubscription = feedCtrl.onIncomingOffer.listen((order) {
+        if (mounted) {
+          _showIncomingOrderModal(context, order);
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _orderSubscription?.cancel();
+    super.dispose();
+  }
 
   void _showIncomingOrderModal(BuildContext context, dynamic order) {
+    if (_isModalOpen) return;
     final activeRideCtrl = context.read<ActiveRideController>();
+    if (activeRideCtrl.activeOrder != null) return;
+
     final feedCtrl = context.read<OrdersFeedController>();
     final authCtrl = context.read<AuthController>();
+
+    _isModalOpen = true;
 
     showModalBottomSheet(
       context: context,
@@ -43,7 +78,9 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
       builder: (modalContext) => IncomingOrderModal(
         order: order,
         onAccept: () async {
+          _isModalOpen = false;
           Navigator.pop(modalContext);
+          await AppAudioService().playOrderAccepted();
           final driverId = authCtrl.currentDriver?.id ?? '';
           if (driverId.isNotEmpty) {
             try {
@@ -56,7 +93,9 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           }
         },
         onDecline: () {
+          _isModalOpen = false;
           Navigator.pop(modalContext);
+          AppAudioService().stopAlertSound();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Orden rechazada. Buscando nuevas solicitudes...'),
@@ -65,7 +104,10 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           );
         },
       ),
-    );
+    ).then((_) {
+      _isModalOpen = false;
+      AppAudioService().stopAlertSound();
+    });
   }
 
   @override
@@ -265,191 +307,244 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
     AuthController authCtrl,
     bool isOnline,
   ) {
-    const driverLocation = LatLng(-17.7833, -63.1821);
     final hasActiveOrder = activeRideCtrl.activeOrder != null;
 
-    return Stack(
-      key: const ValueKey('home_map_shell'),
-      children: [
-        // Mapa Mapbox Light Base
-        FlutterMap(
-          mapController: _homeMapController,
-          options: const MapOptions(
-            initialCenter: driverLocation,
-            initialZoom: 14.5,
-            interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
-          ),
+    return ValueListenableBuilder<LatLng?>(
+      valueListenable: LocationBufferService.currentPositionNotifier,
+      builder: (context, currentPos, _) {
+        final driverLocation = currentPos ?? const LatLng(-17.7833, -63.1821);
+
+        return Stack(
+          key: const ValueKey('home_map_shell'),
           children: [
-            TileLayer(
-              urlTemplate: ApiConstants.mapboxLightStyleUrl,
-              userAgentPackageName: 'com.chiringuito.driver',
-              maxZoom: 19,
-              subdomains: const ['a', 'b', 'c', 'd'],
-            ),
-
-            // Capa de Radio / Radar Verde Translúcido alrededor del Repartidor (Aura Amplia)
-            CircleLayer(
-              circles: [
-                // Radio exterior translúcido amplio (Abarca completamente la moto)
-                CircleMarker(
-                  point: driverLocation,
-                  radius: 46,
-                  useRadiusInMeter: false,
-                  color: const Color(0xFF10B981).withValues(alpha: 0.26),
-                  borderColor: const Color(0xFF10B981).withValues(alpha: 0.60),
-                  borderStrokeWidth: 2.0,
+            // Mapa Mapbox Light Base con Ubicación GPS Real
+            FlutterMap(
+              mapController: _homeMapController,
+              options: MapOptions(
+                initialCenter: driverLocation,
+                initialZoom: 15.0,
+                interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: ApiConstants.mapboxLightStyleUrl,
+                  userAgentPackageName: 'com.chiringuito.driver',
+                  maxZoom: 19,
+                  subdomains: const ['a', 'b', 'c', 'd'],
                 ),
-                // Halo interior suave
-                CircleMarker(
-                  point: driverLocation,
-                  radius: 28,
-                  useRadiusInMeter: false,
-                  color: const Color(0xFF34D399).withValues(alpha: 0.18),
-                  borderColor: Colors.transparent,
-                ),
-              ],
-            ),
 
-            // Marcador del Repartidor en Vivo
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: driverLocation,
-                  width: 50,
-                  height: 50,
-                  child: AppSvgIcons.vehicleNavMarker(
-                    vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
-                    width: 50,
-                    height: 50,
-                  ),
+                // Capa de Radio / Radar Translúcido alrededor del Repartidor
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: driverLocation,
+                      radius: 46,
+                      useRadiusInMeter: false,
+                      color: const Color(0xFF10B981).withValues(alpha: 0.26),
+                      borderColor: const Color(0xFF10B981).withValues(alpha: 0.60),
+                      borderStrokeWidth: 2.0,
+                    ),
+                    CircleMarker(
+                      point: driverLocation,
+                      radius: 28,
+                      useRadiusInMeter: false,
+                      color: const Color(0xFF34D399).withValues(alpha: 0.18),
+                      borderColor: Colors.transparent,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
-        ),
 
-        // Panel Inferior Dinámico
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: hasActiveOrder
-              // Tarjeta de Viaje Activo con diseño nativo y estadísticas completas
-              ? ActiveTripCard(
-                  order: activeRideCtrl.activeOrder,
-                  driver: authCtrl.currentDriver,
-                  onContinueGps: () {
-                    context.pushAnimated(const LiveMapNavigationScreen());
-                  },
-                )
-              : isOnline
-                  // Estado Online: Radar y Órdenes Disponibles
-                  ? Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                // Marcador del Repartidor en Vivo
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: driverLocation,
+                      width: 50,
+                      height: 50,
+                      child: AppSvgIcons.vehicleNavMarker(
+                        vehicleType: authCtrl.currentDriver?.vehicleType ?? 'MOTORCYCLE',
+                        width: 50,
+                        height: 50,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Text(
-                                  'Buscando ofertas de despacho cercanas...',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                                ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Botón Flotante para Re-centrar el Mapa en el GPS del Conductor
+            Positioned(
+              top: 16,
+              right: 16,
+              child: FloatingActionButton.small(
+                heroTag: 'home_gps_recenter',
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primary,
+                elevation: 3,
+                onPressed: () {
+                  final pos = LocationBufferService.currentPositionNotifier.value ?? const LatLng(-17.7833, -63.1821);
+                  _homeMapController.move(pos, 16.0);
+                },
+                child: const Icon(Icons.my_location_rounded, size: 20),
+              ),
+            ),
+
+            // Panel Inferior Dinámico
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: hasActiveOrder
+                  // Tarjeta de Viaje Activo con diseño nativo y estadísticas completas
+                  ? ActiveTripCard(
+                      order: activeRideCtrl.activeOrder,
+                      driver: authCtrl.currentDriver,
+                      onContinueGps: () {
+                        context.pushAnimated(const LiveMapNavigationScreen());
+                      },
+                    )
+                  : isOnline
+                      // Estado Online: Radar y Órdenes Disponibles
+                      ? Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          if (feedCtrl.orders.isNotEmpty) ...[
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _showIncomingOrderModal(context, feedCtrl.orders.first),
-                                icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
-                                label: Text(
-                                  'Ver Nueva Oferta (+Bs. ${feedCtrl.orders.first.driverPayout.toStringAsFixed(2)})',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Text(
+                                        'Buscando pedidos...',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                      ),
+                                    ],
+                                  ),
+                                  // Botón de prueba para probar sonido, vibración y modal
+                                  InkWell(
+                                    onTap: () => feedCtrl.simulateOrderOfferForTesting(),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEF3C7),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFF59E0B)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.volume_up_rounded, size: 12, color: Color(0xFFD97706)),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Probar Alerta',
+                                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFFB45309)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (feedCtrl.orders.isNotEmpty) ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _showIncomingOrderModal(context, feedCtrl.orders.first),
+                                    icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
+                                    label: Text(
+                                      'Ver Nueva Oferta (+Bs. ${feedCtrl.orders.first.driverPayout.toStringAsFixed(2)})',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
+                                    ),
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                                  ),
                                 ),
-                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                              ] else ...[
+                                const Text(
+                                  'Te alertaremos con sonido y vibración cuando entre un pedido.',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        )
+                      // Estado Offline: Tarjeta de descanso
+                      : Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                          ] else ...[
-                            const Text(
-                              'Te alertaremos automáticamente cuando entre un pedido.',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ],
-                      ),
-                    )
-                  // Estado Offline: Tarjeta de descanso
-                  : Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Estás Fuera de Línea',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Conéctate a tu turno para empezar a recibir solicitudes de despacho en tiempo real.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () => authCtrl.toggleOnline(true),
-                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                              child: const Text(
-                                'CONECTARME AHORA',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF94A3B8),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Estás desconectado (Fuera de servicio)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Conéctate arriba para recibir pedidos y acumular ganancias.',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-        ),
-      ],
+                        ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -480,10 +575,10 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                 return Future.value();
               },
               child: feedCtrl.orders.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.inbox_outlined, size: 48, color: AppColors.textMuted),
                           SizedBox(height: 10),
                           Text('No hay órdenes en espera', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),

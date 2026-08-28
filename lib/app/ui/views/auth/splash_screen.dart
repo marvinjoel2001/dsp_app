@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/page_transitions.dart';
+import '../../../core/services/app_permissions_service.dart';
 import '../../controllers/auth_controller.dart';
 import '../feed/all_orders_feed_screen.dart';
+import '../permissions/permission_request_screen.dart';
 import 'welcome_onboarding_screen.dart';
 import 'driver_verification_pending_screen.dart';
 
@@ -111,7 +113,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     });
   }
 
-  void _navigateToNextScreen() {
+  Future<void> _navigateToNextScreen() async {
     if (_hasNavigated || !mounted) return;
     _hasNavigated = true;
 
@@ -120,7 +122,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (authCtrl.isPendingVerification) {
         context.pushReplacementAnimated(const DriverVerificationPendingScreen());
       } else {
-        context.pushReplacementAnimated(const AllOrdersFeedScreen());
+        // Verifica si cuenta con los permisos requeridos (GPS y Notificaciones)
+        final hasPermissions = await AppPermissionsService().hasAllRequiredPermissions();
+        if (!mounted) return;
+
+        if (hasPermissions) {
+          context.pushReplacementAnimated(const AllOrdersFeedScreen());
+        } else {
+          context.pushReplacementAnimated(const PermissionRequestScreen());
+        }
       }
     } else {
       context.pushReplacementAnimated(const WelcomeOnboardingScreen());

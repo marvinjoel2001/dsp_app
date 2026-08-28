@@ -3,7 +3,12 @@ import '../../core/theme/app_colors.dart';
 
 class WithdrawFundsDialog extends StatefulWidget {
   final double currentBalance;
-  final Function(double amount, String method, String accountInfo) onWithdrawConfirmed;
+  final Future<bool> Function(
+    double amount,
+    String method,
+    String accountHolder,
+    String accountNumberOrPhone,
+  ) onWithdrawConfirmed;
 
   const WithdrawFundsDialog({
     super.key,
@@ -23,6 +28,7 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
 
   String _selectedMethod = 'BANK_TRANSFER';
   bool _isProcessing = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -98,7 +104,7 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                       children: [
                         const Text('DISPONIBLE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.primaryDeep)),
                         Text(
-                          '\$${widget.currentBalance.toStringAsFixed(2)}',
+                          'Bs. ${widget.currentBalance.toStringAsFixed(2)}',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
                         ),
                       ],
@@ -106,7 +112,31 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
+
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
 
               // 1. Monto a Retirar con Validación
               const Text(
@@ -223,16 +253,40 @@ class _WithdrawFundsDialogState extends State<WithdrawFundsDialog> {
                       ? null
                       : () async {
                           if (_formKey.currentState?.validate() ?? false) {
-                            setState(() => _isProcessing = true);
+                            setState(() {
+                              _isProcessing = true;
+                              _errorMessage = null;
+                            });
+
                             final amount = double.parse(_amountController.text.trim());
                             final method = _selectedMethod;
-                            final accountInfo = '${_accountHolderController.text.trim()} - ${_accountController.text.trim()}';
+                            final accountHolder = _accountHolderController.text.trim();
+                            final accountNumberOrPhone = _accountController.text.trim();
 
-                            await Future.delayed(const Duration(milliseconds: 600));
+                            try {
+                              final success = await widget.onWithdrawConfirmed(
+                                amount,
+                                method,
+                                accountHolder,
+                                accountNumberOrPhone,
+                              );
 
-                            if (mounted) {
-                              Navigator.pop(context);
-                              widget.onWithdrawConfirmed(amount, method, accountInfo);
+                              if (!mounted) return;
+
+                              if (success) {
+                                Navigator.pop(context);
+                              } else {
+                                setState(() {
+                                  _isProcessing = false;
+                                  _errorMessage = 'No se pudo procesar el retiro. Verifica que el monto no exceda tu saldo.';
+                                });
+                              }
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() {
+                                _isProcessing = false;
+                                _errorMessage = e.toString().replaceAll('Exception: ', '');
+                              });
                             }
                           }
                         },

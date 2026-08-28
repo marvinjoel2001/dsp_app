@@ -42,6 +42,18 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
   String? _licenseUrl;
   String? _soatUrl;
 
+  // Estados de subida individual y errores para documentos
+  final Map<String, bool> _uploadingDocs = {
+    'id_card': false,
+    'license': false,
+    'soat': false,
+  };
+  final Map<String, String?> _docErrors = {
+    'id_card': null,
+    'license': null,
+    'soat': null,
+  };
+
   // Paso 3: Selfie Facial de Seguridad (Solo Cámara)
   final ImagePicker _picker = ImagePicker();
   String? _avatarUrl;
@@ -93,28 +105,79 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
     super.dispose();
   }
 
+  void _showToast(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? AppColors.error : const Color(0xFF059669),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  String _getDocTitle(String docType) {
+    switch (docType) {
+      case 'id_card':
+        return 'Carnet de Identidad';
+      case 'license':
+        return 'Licencia de Conducir';
+      case 'soat':
+        return 'Certificado SOAT';
+      default:
+        return 'Documento';
+    }
+  }
+
   void _nextStep() {
     if (_currentStep == 0) {
-      if (!(_formKeyStep1.currentState?.validate() ?? false)) return;
+      if (!(_formKeyStep1.currentState?.validate() ?? false)) {
+        _showToast(
+          '⚠️ Por favor revisa los campos en rojo para continuar.',
+          isError: true,
+        );
+        return;
+      }
     } else if (_currentStep == 1) {
-      if (!(_formKeyStep2.currentState?.validate() ?? false)) return;
+      if (!(_formKeyStep2.currentState?.validate() ?? false)) {
+        _showToast(
+          '⚠️ Por favor verifica el Carnet de Identidad y la placa del vehículo.',
+          isError: true,
+        );
+        return;
+      }
     } else if (_currentStep == 2) {
       if (_avatarUrl == null || _avatarUrl!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📸 Es obligatorio tomar tu fotografía facial con la cámara antes de continuar.'),
-            backgroundColor: AppColors.error,
-          ),
+        _showToast(
+          '📸 Es obligatorio tomar tu fotografía facial con la cámara antes de continuar.',
+          isError: true,
         );
         return;
       }
     } else if (_currentStep == 3) {
       if (!_acceptTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ Debes leer y aceptar el contrato de prestación y deslinde legal.'),
-            backgroundColor: AppColors.error,
-          ),
+        _showToast(
+          '⚠️ Debes marcar la casilla para aceptar el contrato de prestación de servicios.',
+          isError: true,
         );
         return;
       }
@@ -124,7 +187,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       setState(() => _currentStep++);
       _pageController.animateToPage(
         _currentStep,
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOutCubic,
       );
     }
@@ -135,7 +198,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       setState(() => _currentStep--);
       _pageController.animateToPage(
         _currentStep,
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOutCubic,
       );
     } else {
@@ -211,6 +274,15 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
 
   // Captura de Documentos (Cédula / Licencia / SOAT)
   Future<void> _pickDocumentImage(String docType) async {
+    final status = await Permission.camera.request();
+    if (status.isPermanentlyDenied) {
+      if (mounted) {
+        _showToast('Se requiere permiso de cámara para fotografiar tus documentos.', isError: true);
+        openAppSettings();
+      }
+      return;
+    }
+
     try {
       final XFile? file = await _picker.pickImage(
         source: ImageSource.camera,
@@ -218,6 +290,11 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         maxWidth: 1400,
       );
       if (file == null) return;
+
+      setState(() {
+        _uploadingDocs[docType] = true;
+        _docErrors[docType] = null;
+      });
 
       final bytes = await file.readAsBytes();
       final fileName = '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -232,26 +309,40 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         if (docType == 'id_card') _idCardUrl = result.secureUrl;
         if (docType == 'license') _licenseUrl = result.secureUrl;
         if (docType == 'soat') _soatUrl = result.secureUrl;
+        _uploadingDocs[docType] = false;
       });
 
       if (mounted) {
+        _showToast('✅ ${_getDocTitle(docType)} subido y validado.');
+      }
+    } catch (e) {
+      setState(() {
+        _uploadingDocs[docType] = false;
+        _docErrors[docType] = 'Error al subir imagen. Toca para reintentar.';
+      });
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Documento adjuntado correctamente.'),
-            backgroundColor: AppColors.primaryDark,
+          SnackBar(
+            content: Text('No se pudo subir ${_getDocTitle(docType)}: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            action: SnackBarAction(
+              label: 'Reintentar',
+              textColor: Colors.white,
+              onPressed: () => _pickDocumentImage(docType),
+            ),
           ),
         );
       }
-    } catch (_) {}
+    }
   }
 
   Future<void> _submitRegistration() async {
     if (_contractSignatureSvg == null || _contractSignatureSvg!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✍️ Por favor dibuja tu firma en el recuadro antes de finalizar.'),
-          backgroundColor: AppColors.error,
-        ),
+      _showToast(
+        '✍️ Por favor dibuja tu firma digital en el recuadro antes de finalizar.',
+        isError: true,
       );
       return;
     }
@@ -279,26 +370,18 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       contractAcceptedAt: DateTime.now(),
     );
 
+    if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Registro completado. Tu solicitud fue enviada a revisión.'),
-            backgroundColor: AppColors.primary,
-          ),
-        );
-        // Redirige a la pantalla de espera de validación
-        context.pushReplacementAnimated(const DriverVerificationPendingScreen());
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authCtrl.errorMessage ?? 'Error al registrar conductor.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+    if (success) {
+      _showToast('🎉 ¡Registro completado con éxito! Tu solicitud fue enviada a revisión.');
+      // Redirige a la pantalla de espera de validación
+      context.pushReplacementAnimated(const DriverVerificationPendingScreen());
+    } else {
+      _showToast(
+        authCtrl.errorMessage ?? 'Error al registrar conductor. Por favor verifica tus datos.',
+        isError: true,
+      );
     }
   }
 
@@ -361,47 +444,139 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
   }
 
   Widget _buildStepProgressBar() {
+    final stepIcons = [
+      Icons.person_rounded,
+      Icons.two_wheeler_rounded,
+      Icons.face_retouching_natural_rounded,
+      Icons.description_rounded,
+      Icons.draw_rounded,
+    ];
+
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1.5),
+        ),
+      ),
       child: Column(
         children: [
+          // 5 Milestone Bubbles con Líneas Conectoras Animadas
+          Row(
+            children: List.generate(_totalSteps, (index) {
+              final isPassed = index < _currentStep;
+              final isCurrent = index == _currentStep;
+
+              return Expanded(
+                child: Row(
+                  children: [
+                    // Círculo / Burbuja de Paso
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      width: isCurrent ? 34 : 28,
+                      height: isCurrent ? 34 : 28,
+                      decoration: BoxDecoration(
+                        color: isPassed
+                            ? const Color(0xFF059669) // Verde completado
+                            : (isCurrent ? AppColors.primary : const Color(0xFFF8FAFC)),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isCurrent
+                              ? AppColors.primary
+                              : (isPassed ? const Color(0xFF059669) : const Color(0xFFCBD5E1)),
+                          width: isCurrent ? 2.2 : 1.4,
+                        ),
+                        boxShadow: isCurrent
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: isPassed
+                              ? const Icon(Icons.check_rounded, key: ValueKey('done'), color: Colors.white, size: 16)
+                              : Icon(
+                                  stepIcons[index],
+                                  key: ValueKey('icon_$index'),
+                                  color: isCurrent ? Colors.white : const Color(0xFF94A3B8),
+                                  size: isCurrent ? 17 : 14,
+                                ),
+                        ),
+                      ),
+                    ),
+
+                    // Línea conectora hacia el siguiente paso
+                    if (index < _totalSteps - 1)
+                      Expanded(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 350),
+                          height: 3,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: index < _currentStep ? const Color(0xFF059669) : const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+
+          // Título y Contador con Transición Suave
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'PASO ${_currentStep + 1} DE $_totalSteps',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primaryDark,
-                  letterSpacing: 0.8,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'PASO ${_currentStep + 1} DE $_totalSteps',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primaryDark,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
-              Text(
-                _getStepTitle(_currentStep),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.08, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: Text(
+                  _getStepTitle(_currentStep),
+                  key: ValueKey<int>(_currentStep),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              tween: Tween<double>(begin: 0, end: (_currentStep + 1) / _totalSteps),
-              builder: (_, value, __) => LinearProgressIndicator(
-                value: value,
-                backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                minHeight: 6,
-              ),
-            ),
           ),
         ],
       ),
@@ -622,16 +797,32 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
             const SizedBox(height: 24),
 
             const Text(
-              'Documentos Opcionales (puedes subirlos ahora o luego):',
+              'Documentos de Verificación (Recomendado subirlos ahora):',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B)),
             ),
             const SizedBox(height: 12),
 
-            _buildDocUploadTile('Carnet de Identidad', _idCardUrl, () => _pickDocumentImage('id_card')),
-            const SizedBox(height: 8),
-            _buildDocUploadTile('Licencia de Conducir', _licenseUrl, () => _pickDocumentImage('license')),
-            const SizedBox(height: 8),
-            _buildDocUploadTile('Certificado SOAT', _soatUrl, () => _pickDocumentImage('soat')),
+            _buildDocUploadTile(
+              docType: 'id_card',
+              title: 'Cédula de Identidad',
+              subtitle: 'Foto nítida de anverso y reverso',
+              url: _idCardUrl,
+              onTap: () => _pickDocumentImage('id_card'),
+            ),
+            _buildDocUploadTile(
+              docType: 'license',
+              title: 'Licencia de Conducir',
+              subtitle: 'Categoría vigente para tu vehículo',
+              url: _licenseUrl,
+              onTap: () => _pickDocumentImage('license'),
+            ),
+            _buildDocUploadTile(
+              docType: 'soat',
+              title: 'Certificado SOAT',
+              subtitle: 'Comprobante de seguro obligatorio',
+              url: _soatUrl,
+              onTap: () => _pickDocumentImage('soat'),
+            ),
           ],
         ),
       ),
@@ -673,45 +864,197 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
     );
   }
 
-  Widget _buildDocUploadTile(String title, String? url, VoidCallback onTap) {
+  Widget _buildDocUploadTile({
+    required String docType,
+    required String title,
+    required String subtitle,
+    required String? url,
+    required VoidCallback onTap,
+  }) {
     final hasUploaded = url != null && url.isNotEmpty;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: hasUploaded ? AppColors.primary : const Color(0xFFE2E8F0)),
+    final isUploading = _uploadingDocs[docType] ?? false;
+    final error = _docErrors[docType];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: error != null
+              ? AppColors.error
+              : (hasUploaded ? const Color(0xFF10B981) : const Color(0xFFE2E8F0)),
+          width: hasUploaded || error != null ? 1.6 : 1.0,
         ),
-        child: Row(
-          children: [
-            Icon(
-              hasUploaded ? Icons.check_circle : Icons.camera_alt_outlined,
-              size: 18,
-              color: hasUploaded ? AppColors.primary : const Color(0xFF64748B),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: hasUploaded ? AppColors.primaryDark : const Color(0xFF0F172A),
+        boxShadow: [
+          BoxShadow(
+            color: hasUploaded
+                ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isUploading ? null : onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                // Icono / Preview Thumbnail
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: hasUploaded ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasUploaded ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(11),
+                    child: hasUploaded
+                        ? Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF059669),
+                              size: 24,
+                            ),
+                          )
+                        : Icon(
+                            isUploading ? Icons.cloud_upload_rounded : Icons.camera_alt_rounded,
+                            color: isUploading ? AppColors.primary : const Color(0xFF64748B),
+                            size: 22,
+                          ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+
+                // Textos
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: hasUploaded ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        error ?? subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: error != null
+                              ? AppColors.error
+                              : (hasUploaded ? const Color(0xFF059669) : const Color(0xFF94A3B8)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Botón / Pill de Acción
+                if (isUploading)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 13,
+                          height: 13,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryDark),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Subiendo...',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (hasUploaded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'Listo',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.edit_outlined, color: Color(0xFF059669), size: 12),
+                      ],
+                    ),
+                  )
+                else if (error != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFCA5A5)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.refresh_rounded, color: AppColors.error, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'Reintentar',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.error),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.camera_alt_rounded, color: Color(0xFF475569), size: 13),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tomar Foto',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-            Text(
-              hasUploaded ? 'Adjuntado' : 'Tomar Foto',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: hasUploaded ? AppColors.primary : const Color(0xFF64748B),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -874,30 +1217,62 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Checkbox Aceptación Expresa
+          // Checkbox Aceptación Expresa Estilizado en Card
           InkWell(
             onTap: () => setState(() => _acceptTerms = !_acceptTerms),
-            borderRadius: BorderRadius.circular(12),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: _acceptTerms,
-                  onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-                  activeColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: _acceptTerms ? const Color(0xFFECFDF5) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _acceptTerms ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
+                  width: _acceptTerms ? 2.0 : 1.2,
                 ),
-                const Expanded(
-                  child: Text(
-                    'He leído, comprendo y acepto los términos del contrato de servicios, el deslinde de responsabilidad y el esquema de pagos semanales.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                      height: 1.35,
+                boxShadow: [
+                  BoxShadow(
+                    color: _acceptTerms
+                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: _acceptTerms ? const Color(0xFF059669) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _acceptTerms ? const Color(0xFF059669) : const Color(0xFF94A3B8),
+                        width: 2,
+                      ),
+                    ),
+                    child: _acceptTerms
+                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'He leído, comprendo y acepto los términos del contrato de servicios, el deslinde de responsabilidad y el esquema de pagos semanales.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        height: 1.35,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

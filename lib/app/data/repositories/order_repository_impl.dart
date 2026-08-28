@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/entities/order_entity.dart';
 import '../models/order_model.dart';

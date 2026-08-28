@@ -10,10 +10,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
 
-    <!-- Permisos de Cámara y Notificaciones Push -->
+    <!-- Permisos de Cámara, Notificaciones Push y Vibración -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:label="Chiringuito Driver"

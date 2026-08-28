@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -8,6 +10,7 @@ class AppAudioService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FlutterTts _tts = FlutterTts();
+  Timer? _vibrateTimer;
   bool _isTtsInitialized = false;
   bool isVoiceGuidanceEnabled = true;
 
@@ -34,17 +37,30 @@ class AppAudioService {
     }
   }
 
-  /// Sonido de Alerta de Orden Entrante (30s dispatch ringtone)
+  /// Sonido de Alerta de Orden Entrante (30s dispatch ringtone) con Vibración Continua
   Future<void> playIncomingOrderAlert() async {
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/universfield-ringtone-091-496417.mp3'), volume: 1.0);
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.play(
+        AssetSource('sounds/universfield-ringtone-091-496417.mp3'),
+        volume: 1.0,
+      );
+
+      // Vibración de alerta inicial y ciclo recurrente para llamar la atención del conductor
+      _vibrateTimer?.cancel();
+      HapticFeedback.heavyImpact();
+      _vibrateTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) {
+        HapticFeedback.vibrate();
+      });
     } catch (_) {}
   }
 
-  /// Detener sonido de alerta
+  /// Detener sonido de alerta y cancelar vibración
   Future<void> stopAlertSound() async {
     try {
+      _vibrateTimer?.cancel();
+      _vibrateTimer = null;
       await _audioPlayer.stop();
     } catch (_) {}
   }
@@ -52,7 +68,8 @@ class AppAudioService {
   /// Sonido al Aceptar la Orden
   Future<void> playOrderAccepted() async {
     try {
-      await _audioPlayer.stop();
+      await stopAlertSound();
+      HapticFeedback.mediumImpact();
       await _audioPlayer.play(AssetSource('sounds/accepted.mp3'), volume: 1.0);
     } catch (_) {}
   }
@@ -60,7 +77,8 @@ class AppAudioService {
   /// Sonido de Dinero / Ganancia acreditada al entregar
   Future<void> playEarningsCash() async {
     try {
-      await _audioPlayer.stop();
+      await stopAlertSound();
+      HapticFeedback.heavyImpact();
       await _audioPlayer.play(AssetSource('sounds/cash.mp3'), volume: 1.0);
     } catch (_) {}
   }

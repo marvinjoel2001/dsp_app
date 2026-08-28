@@ -44,7 +44,7 @@ class WelcomeOnboardingScreen extends StatelessWidget {
                 width: 240,
                 height: 240,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withOpacity(0.5),
+                  color: AppColors.primaryLight.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -55,7 +55,7 @@ class WelcomeOnboardingScreen extends StatelessWidget {
                         width: 170,
                         height: 170,
                         decoration: BoxDecoration(
-                          color: AppColors.secondaryLight.withOpacity(0.6),
+                          color: AppColors.secondaryLight.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                       ),

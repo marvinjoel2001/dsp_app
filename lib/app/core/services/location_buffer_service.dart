@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import '../network/socket_service.dart';
 
 class LocationPing {
@@ -34,25 +36,96 @@ class LocationPing {
 
 class LocationBufferService {
   static final List<LocationPing> _buffer = [];
-  static Timer? _syncTimer;
+  static StreamSubscription<Position>? _positionSubscription;
+  static Timer? _fallbackTimer;
 
-  static void startTelemetrySync(String driverId, {String? activeOrderId}) {
-    _syncTimer?.cancel();
+  // Notificadores reactivos para que el mapa de inicio y navegación sigan la posición GPS real
+  static final ValueNotifier<LatLng?> currentPositionNotifier = ValueNotifier<LatLng?>(null);
+  static final ValueNotifier<double> currentHeadingNotifier = ValueNotifier<double>(0.0);
+  static final ValueNotifier<double> currentSpeedNotifier = ValueNotifier<double>(0.0);
 
-    // Sends telemetry ping every 5 seconds
-    _syncTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      // In production, this pulls from Geolocator.getPositionStream
-      // Here we simulate subtle movement coordinates for testing
+  /// Inicia el rastreo satelital GPS y transmisión de telemetría por WebSockets
+  static Future<void> startTelemetrySync(String driverId, {String? activeOrderId}) async {
+    stopTelemetrySync();
+
+    // 1. Obtener la primera posición GPS inmediatamente
+    try {
+      final initialPos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 4),
+        ),
+      );
+      final initialLatLng = LatLng(initialPos.latitude, initialPos.longitude);
+      currentPositionNotifier.value = initialLatLng;
+      currentHeadingNotifier.value = initialPos.heading;
+      currentSpeedNotifier.value = initialPos.speed;
+
+      sendOrBufferPing(LocationPing(
+        driverId: driverId,
+        lat: initialPos.latitude,
+        lng: initialPos.longitude,
+        heading: initialPos.heading,
+        speed: initialPos.speed,
+        orderId: activeOrderId,
+        timestamp: DateTime.now(),
+      ));
+    } catch (_) {
+      // Fallback a Santa Cruz centro si no hay fix satelital inicial
+      currentPositionNotifier.value ??= const LatLng(-17.7833, -63.1821);
+    }
+
+    // 2. Escuchar stream de coordenadas continuas del dispositivo
+    try {
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 3, // Actualiza cada 3 metros recorridos
+      );
+
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings,
+      ).listen(
+        (pos) {
+          final latLng = LatLng(pos.latitude, pos.longitude);
+          currentPositionNotifier.value = latLng;
+          currentHeadingNotifier.value = pos.heading;
+          currentSpeedNotifier.value = pos.speed;
+
+          final ping = LocationPing(
+            driverId: driverId,
+            lat: pos.latitude,
+            lng: pos.longitude,
+            heading: pos.heading,
+            speed: pos.speed,
+            orderId: activeOrderId,
+            timestamp: DateTime.now(),
+          );
+          sendOrBufferPing(ping);
+        },
+        onError: (err) {
+          debugPrint('Error en stream GPS: $err');
+          _startFallbackInterval(driverId, activeOrderId);
+        },
+      );
+    } catch (e) {
+      debugPrint('No se pudo inicializar getPositionStream: $e');
+      _startFallbackInterval(driverId, activeOrderId);
+    }
+  }
+
+  static void _startFallbackInterval(String driverId, String? activeOrderId) {
+    _fallbackTimer?.cancel();
+    _fallbackTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      final currentPos = currentPositionNotifier.value ?? const LatLng(-17.7833, -63.1821);
       final ping = LocationPing(
         driverId: driverId,
-        lat: -17.7833 + (timer.tick * 0.0001),
-        lng: -63.1821 + (timer.tick * 0.0001),
-        heading: 45.0,
-        speed: 28.5,
+        lat: currentPos.latitude,
+        lng: currentPos.longitude,
+        heading: currentHeadingNotifier.value,
+        speed: currentSpeedNotifier.value,
         orderId: activeOrderId,
         timestamp: DateTime.now(),
       );
-
       sendOrBufferPing(ping);
     });
   }
@@ -60,9 +133,7 @@ class LocationBufferService {
   static void sendOrBufferPing(LocationPing ping) {
     final socket = SocketService();
     if (socket.isConnected) {
-      // Flush buffered items if any
       flushBuffer();
-      // Send current ping
       socket.emitLocationPing(
         driverId: ping.driverId,
         lat: ping.lat,
@@ -72,7 +143,6 @@ class LocationBufferService {
         orderId: ping.orderId,
       );
     } else {
-      // Buffer offline ping in memory
       if (_buffer.length < 100) {
         _buffer.add(ping);
       }
@@ -97,7 +167,9 @@ class LocationBufferService {
   }
 
   static void stopTelemetrySync() {
-    _syncTimer?.cancel();
-    _syncTimer = null;
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+    _fallbackTimer?.cancel();
+    _fallbackTimer = null;
   }
 }

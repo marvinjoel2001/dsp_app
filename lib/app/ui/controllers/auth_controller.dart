@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/repositories/driver_repository.dart';
 import '../../domain/entities/driver_entity.dart';
+import '../../data/models/wallet_model.dart';
+import '../../core/network/api_client.dart';
 import '../../core/services/location_buffer_service.dart';
 import '../../core/network/socket_service.dart';
 
@@ -32,6 +34,7 @@ class AuthController extends ChangeNotifier {
       if (driverId != null && token != null && token.isNotEmpty) {
         _currentDriver = await driverRepository.getDriverProfile(driverId);
         SocketService().initSocket();
+        SocketService().joinDriver(_currentDriver!.id);
         LocationBufferService.startTelemetrySync(_currentDriver!.id);
         notifyListeners();
       }
@@ -59,6 +62,7 @@ class AuthController extends ChangeNotifier {
     try {
       _currentDriver = await driverRepository.login(email, password);
       SocketService().initSocket();
+      SocketService().joinDriver(_currentDriver!.id);
       LocationBufferService.startTelemetrySync(_currentDriver!.id);
       _isLoading = false;
       notifyListeners();
@@ -206,9 +210,67 @@ class AuthController extends ChangeNotifier {
 
     await driverRepository.toggleOnlineStatus(_currentDriver!.id, isOnline);
     if (isOnline) {
+      SocketService().initSocket();
+      SocketService().joinDriver(_currentDriver!.id);
       LocationBufferService.startTelemetrySync(_currentDriver!.id);
     } else {
       LocationBufferService.stopTelemetrySync();
+    }
+  }
+
+  Future<WalletInfoModel> getWallet() async {
+    if (_currentDriver == null) {
+      return WalletInfoModel(balance: 0.0, currency: 'BOB', transactions: []);
+    }
+    final wallet = await driverRepository.getWallet(_currentDriver!.id);
+    _currentDriver = DriverEntity(
+      id: _currentDriver!.id,
+      fullName: _currentDriver!.fullName,
+      phone: _currentDriver!.phone,
+      email: _currentDriver!.email,
+      vehicleType: _currentDriver!.vehicleType,
+      vehiclePlate: _currentDriver!.vehiclePlate,
+      ciNumber: _currentDriver!.ciNumber,
+      homeAddress: _currentDriver!.homeAddress,
+      avatarUrl: _currentDriver!.avatarUrl,
+      verificationStatus: _currentDriver!.verificationStatus,
+      idCardUrl: _currentDriver!.idCardUrl,
+      licenseUrl: _currentDriver!.licenseUrl,
+      soatUrl: _currentDriver!.soatUrl,
+      vehiclePhotoUrl: _currentDriver!.vehiclePhotoUrl,
+      contractSignatureSvg: _currentDriver!.contractSignatureSvg,
+      contractAcceptedAt: _currentDriver!.contractAcceptedAt,
+      isOnline: _currentDriver!.isOnline,
+      isActive: _currentDriver!.isActive,
+      rating: _currentDriver!.rating,
+      walletBalance: wallet.balance,
+    );
+    notifyListeners();
+    return wallet;
+  }
+
+  Future<bool> requestWithdrawal({
+    required double amount,
+    required String method,
+    required String accountHolder,
+    required String accountNumberOrPhone,
+  }) async {
+    if (_currentDriver == null) return false;
+    try {
+      await ApiClient().dio.post(
+        '/v1/settlements/withdrawals/request',
+        data: {
+          'driverId': _currentDriver!.id,
+          'amount': amount,
+          'method': method,
+          'accountHolder': accountHolder,
+          'accountNumberOrPhone': accountNumberOrPhone,
+        },
+      );
+      await getWallet();
+      return true;
+    } catch (e) {
+      rethrow;
     }
   }
 

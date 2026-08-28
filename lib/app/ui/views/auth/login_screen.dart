@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_svg_icons.dart';
 import '../../../core/theme/page_transitions.dart';
+import '../../../core/services/app_permissions_service.dart';
 import '../../controllers/auth_controller.dart';
 import '../feed/all_orders_feed_screen.dart';
+import '../permissions/permission_request_screen.dart';
 import 'register_driver_screen.dart';
 import 'driver_verification_pending_screen.dart';
 
@@ -160,13 +162,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _phoneOrEmailController.text.trim(),
                                 _passwordController.text.isEmpty ? '123456' : _passwordController.text,
                               );
-                              if (success && mounted) {
+                              if (!mounted) return;
+
+                              if (success) {
                                 if (authCtrl.isPendingVerification) {
                                   context.pushReplacementAnimated(const DriverVerificationPendingScreen());
                                 } else {
-                                  context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                                  final hasPermissions = await AppPermissionsService().hasAllRequiredPermissions();
+                                  if (!mounted) return;
+
+                                  if (hasPermissions) {
+                                    context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                                  } else {
+                                    context.pushReplacementAnimated(const PermissionRequestScreen());
+                                  }
                                 }
-                              } else if (mounted) {
+                              } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Row(
@@ -244,9 +255,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   InkWell(
                     onTap: () async {
                       await authCtrl.login('driver@dsp.com', 'admin123');
-                      if (mounted) {
-                        context.pushReplacementAnimated(const AllOrdersFeedScreen());
-                      }
+                      if (!mounted) return;
+                      context.pushReplacementAnimated(const AllOrdersFeedScreen());
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
