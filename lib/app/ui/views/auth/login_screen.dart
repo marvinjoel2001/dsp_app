@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -147,9 +146,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-                // Botón Iniciar Sesión
+                // Botón Principal Iniciar Sesión
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -160,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (_formKey.currentState?.validate() ?? false) {
                               final success = await authCtrl.login(
                                 _phoneOrEmailController.text.trim(),
-                                _passwordController.text.isEmpty ? '123456' : _passwordController.text,
+                                _passwordController.text.isEmpty ? 'admin123' : _passwordController.text,
                               );
                               if (!context.mounted) return;
 
@@ -203,6 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 2,
                     ),
                     child: authCtrl.isLoading
                         ? const SizedBox(
@@ -210,18 +210,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 24,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                           )
-                        : const Text(
-                            'Iniciar Sesión como Repartidor',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Iniciar Sesión como Repartidor',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18, color: Colors.white),
+                            ],
                           ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
                 // Enlace a Registro
                 Center(
@@ -249,42 +256,109 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                if (kDebugMode) ...[
-                  const SizedBox(height: 16),
-                  // Botón de Acceso Rápido Demo 1-Click (Solo para Pruebas / QA / Debug)
-                  InkWell(
-                    onTap: () async {
-                      await authCtrl.login('driver@dsp.com', 'admin123');
-                      if (!context.mounted) return;
-                      context.pushReplacementAnimated(const AllOrdersFeedScreen());
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 24),
+
+                // Sección de Acceso Rápido Demo 1-Click
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
                         children: [
-                          Icon(Icons.bolt, color: AppColors.primaryDark, size: 18),
+                          Icon(Icons.bolt, color: AppColors.primaryDark, size: 16),
                           SizedBox(width: 6),
                           Text(
-                            '⚡ 1-Click Demo QA (+591 70001234 • Alex)',
+                            'ACCESOS RÁPIDOS DEMO',
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primaryDark,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                _phoneOrEmailController.text = '+591 70001234';
+                                _passwordController.text = 'admin123';
+                                final ok = await authCtrl.login('+591 70001234', 'admin123');
+                                if (!context.mounted) return;
+                                if (ok) context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Alex (Moto)',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                    ),
+                                    Text(
+                                      '+591 70001234',
+                                      style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                _phoneOrEmailController.text = 'driver@dsp.com';
+                                _passwordController.text = 'admin123';
+                                final ok = await authCtrl.login('driver@dsp.com', 'admin123');
+                                if (!context.mounted) return;
+                                if (ok) context.pushReplacementAnimated(const AllOrdersFeedScreen());
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Driver Demo',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                    ),
+                                    Text(
+                                      'driver@dsp.com',
+                                      style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
