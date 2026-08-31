@@ -12,6 +12,9 @@ class SocketService {
   bool _isConnected = false;
   String? _joinedDriverId;
 
+  String? _activeOrderId;
+  Function(dynamic)? _activeOrderCallback;
+
   // Stream broadcast para eventos de órdenes en tiempo real
   final StreamController<dynamic> _orderEventStream = StreamController<dynamic>.broadcast();
   Stream<dynamic> get onOrderEvent => _orderEventStream.stream;
@@ -36,9 +39,17 @@ class SocketService {
       _isConnected = true;
       debugPrint('⚡ WebSocket connected to OpenDSP Tracking Gateway');
 
-      // Si el conductor ya había iniciado sesión, suscribirse automáticamente a su canal
+      // Si el conductor ya había iniciado sesión, re-suscribirse automáticamente a su canal
       if (_joinedDriverId != null) {
         joinDriver(_joinedDriverId!);
+      }
+
+      // Si había una orden activa suscrita, re-suscribirse
+      if (_activeOrderId != null && _activeOrderCallback != null) {
+        _socket!.emit('order:subscribe', {'orderId': _activeOrderId});
+        _socket!.off('order:location_update');
+        _socket!.on('order:location_update', _activeOrderCallback!);
+        debugPrint('🔄 [Socket] Re-suscrito a orden activa: $_activeOrderId');
       }
     });
 
@@ -98,9 +109,24 @@ class SocketService {
 
   /// Suscribe a las actualizaciones en vivo de una orden específica
   void subscribeToOrder(String orderId, Function(dynamic) onUpdate) {
+    _activeOrderId = orderId;
+    _activeOrderCallback = onUpdate;
     if (_socket != null) {
       _socket!.emit('order:subscribe', {'orderId': orderId});
+      _socket!.off('order:location_update');
       _socket!.on('order:location_update', onUpdate);
+    }
+  }
+
+  /// Desuscribe de la orden activa
+  void unsubscribeFromOrder(String orderId) {
+    if (_socket != null) {
+      _socket!.emit('order:unsubscribe', {'orderId': orderId});
+      _socket!.off('order:location_update');
+    }
+    if (_activeOrderId == orderId) {
+      _activeOrderId = null;
+      _activeOrderCallback = null;
     }
   }
 

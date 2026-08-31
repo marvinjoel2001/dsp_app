@@ -5,6 +5,7 @@ import '../../domain/entities/driver_entity.dart';
 import '../../data/models/wallet_model.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/location_buffer_service.dart';
+import '../../core/services/push_notification_service.dart';
 import '../../core/network/socket_service.dart';
 
 class AuthController extends ChangeNotifier {
@@ -230,6 +231,7 @@ class AuthController extends ChangeNotifier {
     if (isOnline) {
       SocketService().initSocket();
       SocketService().joinDriver(_currentDriver!.id);
+      PushNotificationService().registerDriver(_currentDriver!.id, driverRepo: driverRepository);
       LocationBufferService.startTelemetrySync(_currentDriver!.id);
     } else {
       LocationBufferService.stopTelemetrySync();

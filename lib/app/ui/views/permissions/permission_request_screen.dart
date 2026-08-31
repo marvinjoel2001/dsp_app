@@ -126,9 +126,9 @@ class _PermissionRequestScreenState extends State<PermissionRequestScreen> {
                     _buildPermissionCard(
                       icon: Icons.notifications_active,
                       iconColor: const Color(0xFF2563EB),
-                      title: 'Notificaciones de Alta Prioridad',
+                      title: 'Alertas Sonoras y Pantalla Completa',
                       description:
-                          'Te avisa al instante con sonido y vibración cuando entre una nueva orden con el temporizador de 30 segundos.',
+                          'Despierta tu teléfono con sonido y vibración máxima incluso con la pantalla bloqueada o si la app está cerrada cuando entra un pedido urgente.',
                       isRequired: true,
                     ),
                   ],

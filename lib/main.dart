@@ -17,6 +17,8 @@ import 'app/ui/views/feed/all_orders_feed_screen.dart';
 import 'app/ui/views/wallet/earnings_wallet_screen.dart';
 import 'app/ui/views/auth/driver_verification_pending_screen.dart';
 
+import 'app/core/services/push_notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -32,6 +34,13 @@ void main() async {
   final apiClient = ApiClient();
   final driverRepo = DriverRepositoryImpl(apiClient: apiClient);
   final orderRepo = OrderRepositoryImpl(apiClient: apiClient);
+
+  // Inicializar Notificaciones Push (FCM) y canal de alta prioridad con sonido de sirena
+  try {
+    await PushNotificationService().initialize(driverRepo: driverRepo);
+  } catch (e) {
+    debugPrint('Inicialización push silenciosa: $e');
+  }
 
   runApp(
     MultiProvider(

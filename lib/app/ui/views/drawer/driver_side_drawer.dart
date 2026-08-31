@@ -105,7 +105,7 @@ class DriverSideDrawer extends StatelessWidget {
                     ),
                   ),
 
-                  // Interruptor En Línea / Fuera de Línea
+                  // Interruptor Libre / Ocupado (Disponibilidad del conductor)
                   GestureDetector(
                     onTap: () {
                       final newState = !(driver?.isOnline ?? false);
@@ -114,28 +114,36 @@ class DriverSideDrawer extends StatelessWidget {
                         SnackBar(
                           content: Text(
                             newState
-                                ? '🟢 Ahora estás EN LÍNEA y visible para pedidos de Chiringuito'
-                                : '⚪ Has pasado a estado FUERA DE LÍNEA',
+                                ? '🟢 Ahora estás LIBRE y visible para recibir pedidos de Chiringuito'
+                                : '⚪ Has pasado a estado OCUPADO (No recibirás pedidos)',
                           ),
-                          backgroundColor: newState ? AppColors.primaryDark : AppColors.textPrimary,
+                          backgroundColor: newState ? const Color(0xFF10B981) : const Color(0xFF475569),
                           duration: const Duration(seconds: 2),
                         ),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: (driver?.isOnline ?? false)
-                            ? AppColors.primary
-                            : AppColors.border,
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF64748B),
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          if (driver?.isOnline ?? false)
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 10,
-                            height: 10,
+                            width: 8,
+                            height: 8,
                             decoration: const BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
@@ -143,11 +151,12 @@ class DriverSideDrawer extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            (driver?.isOnline ?? false) ? 'ONLINE' : 'OFFLINE',
+                            (driver?.isOnline ?? false) ? 'LIBRE' : 'OCUPADO',
                             style: const TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],

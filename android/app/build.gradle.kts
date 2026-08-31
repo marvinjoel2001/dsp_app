@@ -5,6 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Aplicar plugin de Firebase automáticamente solo cuando el usuario coloque google-services.json
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.chiringuito.dsp_driver_app"
     compileSdk = flutter.compileSdkVersion

@@ -48,6 +48,7 @@ class ApiConstants {
   static const String driverActiveOrder = '/v1/drivers/{id}/active-order';
   static const String driverToggleOnline = '/v1/drivers/{id}/online';
   static const String driverWallet = '/v1/drivers/{id}/wallet';
+  static const String driverUpdateFcmToken = '/v1/drivers/{id}/fcm-token';
   static const String acceptOrder = '/v1/dispatch/accept';
   static const String updateOrderStatus = '/v1/orders/{id}/status';
 }

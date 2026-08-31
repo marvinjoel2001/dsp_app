@@ -148,7 +148,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
           ],
         ),
         actions: [
-          // Conmutador Rápido Online/Offline
+          // Conmutador Rápido Libre/Ocupado (Disponibilidad)
           GestureDetector(
             onTap: () {
               if (!isVerified) {
@@ -168,10 +168,10 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                 SnackBar(
                   content: Text(
                     nextState
-                        ? '🟢 Ahora estás EN LÍNEA y recibiendo pedidos de Chiringuito.'
-                        : '⚪ Has pasado a estado FUERA DE LÍNEA.',
+                        ? '🟢 Ahora estás LIBRE y recibiendo pedidos de Chiringuito.'
+                        : '⚪ Has pasado a estado OCUPADO (No recibirás alertas).',
                   ),
-                  backgroundColor: nextState ? AppColors.primaryDark : AppColors.textPrimary,
+                  backgroundColor: nextState ? const Color(0xFF10B981) : const Color(0xFF475569),
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -180,10 +180,10 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isOnline ? AppColors.primaryLight : const Color(0xFFF1F5F9),
+                color: isOnline ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isOnline ? AppColors.primary : const Color(0xFFCBD5E1),
+                  color: isOnline ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
                 ),
               ),
               child: Row(
@@ -192,17 +192,17 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: isOnline ? AppColors.primary : AppColors.textMuted,
+                      color: isOnline ? const Color(0xFF10B981) : const Color(0xFF64748B),
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    isOnline ? 'ONLINE' : 'OFFLINE',
+                    isOnline ? 'LIBRE' : 'OCUPADO',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
-                      color: isOnline ? AppColors.primaryDark : AppColors.textMuted,
+                      color: isOnline ? const Color(0xFF047857) : const Color(0xFF64748B),
                     ),
                   ),
                 ],
@@ -523,7 +523,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                                   const SizedBox(width: 10),
                                   const Expanded(
                                     child: Text(
-                                      'Estás desconectado (Fuera de servicio)',
+                                      'Estás en modo OCUPADO (No disponible)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
@@ -535,7 +535,7 @@ class _AllOrdersFeedScreenState extends State<AllOrdersFeedScreen> {
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                'Conéctate arriba para recibir pedidos y acumular ganancias.',
+                                'Pasa a estado LIBRE arriba para recibir pedidos y generar ganancias.',
                                 style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                               ),
                             ],

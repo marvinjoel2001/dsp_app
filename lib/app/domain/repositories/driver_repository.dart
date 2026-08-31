@@ -9,4 +9,5 @@ abstract class DriverRepository {
   Future<DriverEntity> uploadDocuments(String driverId, Map<String, dynamic> docs);
   Future<bool> toggleOnlineStatus(String driverId, bool isOnline);
   Future<WalletInfoModel> getWallet(String driverId);
+  Future<bool> updateFcmToken(String driverId, String fcmToken);
 }

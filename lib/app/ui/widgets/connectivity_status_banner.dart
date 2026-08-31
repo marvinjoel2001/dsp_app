@@ -19,7 +19,7 @@ class ConnectivityStatusBanner extends StatelessWidget {
     final bgColor = isOffline ? const Color(0xFF334155) : AppColors.warning;
     final icon = isOffline ? Icons.wifi_off_rounded : Icons.location_off_rounded;
     final text = isOffline
-        ? 'Estás desconectado. Conéctate para recibir nuevos pedidos.'
+        ? 'Estás en modo OCUPADO. Pasa a LIBRE para recibir nuevos pedidos.'
         : 'Señal GPS baja o buscando ubicación del conductor...';
 
     return AnimatedContainer(

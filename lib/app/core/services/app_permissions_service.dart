@@ -69,6 +69,15 @@ class AppPermissionsService {
   Future<bool> requestNotificationPermission() async {
     if (kIsWeb) return true;
     final status = await Permission.notification.request();
+
+    // Solicitar permiso de ignorar optimización de batería para no matar el servicio de despacho
+    try {
+      final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
+      if (!batteryStatus.isGranted) {
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    } catch (_) {}
+
     return status.isGranted;
   }
 

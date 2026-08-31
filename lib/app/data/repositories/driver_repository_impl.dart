@@ -203,4 +203,15 @@ class DriverRepositoryImpl implements DriverRepository {
       );
     }
   }
+
+  @override
+  Future<bool> updateFcmToken(String driverId, String fcmToken) async {
+    try {
+      final url = ApiConstants.driverUpdateFcmToken.replaceAll('{id}', driverId);
+      await apiClient.dio.patch(url, data: {'fcmToken': fcmToken});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
