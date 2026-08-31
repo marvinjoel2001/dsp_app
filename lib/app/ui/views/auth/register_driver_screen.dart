@@ -41,17 +41,20 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
   String? _idCardUrl;
   String? _licenseUrl;
   String? _soatUrl;
+  String? _vehiclePhotoUrl;
 
   // Estados de subida individual y errores para documentos
   final Map<String, bool> _uploadingDocs = {
     'id_card': false,
     'license': false,
     'soat': false,
+    'vehicle': false,
   };
   final Map<String, String?> _docErrors = {
     'id_card': null,
     'license': null,
     'soat': null,
+    'vehicle': null,
   };
 
   // Paso 3: Selfie Facial de Seguridad (Solo Cámara)
@@ -143,6 +146,8 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         return 'Licencia de Conducir';
       case 'soat':
         return 'Certificado SOAT';
+      case 'vehicle':
+        return 'Foto del Vehículo y Placa';
       default:
         return 'Documento';
     }
@@ -310,6 +315,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
         if (docType == 'id_card') _idCardUrl = result.secureUrl;
         if (docType == 'license') _licenseUrl = result.secureUrl;
         if (docType == 'soat') _soatUrl = result.secureUrl;
+        if (docType == 'vehicle') _vehiclePhotoUrl = result.secureUrl;
         _uploadingDocs[docType] = false;
       });
 
@@ -367,6 +373,7 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
       idCardUrl: _idCardUrl,
       licenseUrl: _licenseUrl,
       soatUrl: _soatUrl,
+      vehiclePhotoUrl: _vehiclePhotoUrl,
       contractSignatureSvg: _contractSignatureSvg,
       contractAcceptedAt: DateTime.now(),
     );
@@ -822,6 +829,13 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
               subtitle: 'Comprobante de seguro obligatorio',
               url: _soatUrl,
               onTap: () => _pickDocumentImage('soat'),
+            ),
+            _buildDocUploadTile(
+              docType: 'vehicle',
+              title: 'Foto del Vehículo y Placa',
+              subtitle: 'Foto nítida mostrando el estado del vehículo y placa',
+              url: _vehiclePhotoUrl,
+              onTap: () => _pickDocumentImage('vehicle'),
             ),
           ],
         ),
